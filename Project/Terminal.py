@@ -11,6 +11,13 @@ from serial import SerialException  # Import pyserial exception handling
 '''
 Functions
 '''
+def print_to_terminal(msg):
+    terminal_box.insert(END, msg)
+    terminal_box.insert(END,'\n')
+
+    #Reset position index to have messages scroll down
+    terminal_box.yview = END
+    return
 
 def open_com_port():
     # Store user selected value
@@ -18,6 +25,10 @@ def open_com_port():
     # Extract com port value
     com_port = com_port_selected[0:4]
 
+    #Ensure a com port was selected
+    if(com_port == ''):
+        return
+    
     global serial_port
     # Open selected com port with default parameters. Returned port handle is set as global variable
     try:
@@ -26,20 +37,15 @@ def open_com_port():
                                     parity=serial.PARITY_NONE)
     # Check if COM port failed to open. Print error message
     except SerialException:
-    #    terminal_box.insert('1.0', " is busy. Unable to open\n")
-    #   terminal_box.insert('1.0', com_port_given)
-    #    terminal_box.insert('1.0', "\n")
+        print_to_terminal(com_port + " is busy. Unable to open")
         return
   
     # Print COM port opened successfully.
-    #terminal_box.insert('1.0', " opened successfully\n")
-    #terminal_box.insert('1.0', com_port_given)
-    #terminal_box.insert('1.0', "\n")
+    print_to_terminal(com_port + " opened successfully")
 
     #Disable open com port button
     open_com_button['state'] = 'disabled'
-
-
+    return
 
 '''
 Definitions
@@ -77,6 +83,10 @@ com_ports_menu.current()
 open_com_button = ttk.Button(main_frame, text="Open Port",
                              command=open_com_port)
 open_com_button.pack()
+
+# Create a scroll text box for the terminal
+terminal_box = scrolledtext.ScrolledText(main_frame, width=47, height=20)
+terminal_box.pack()
 
 # Main loop
 window.mainloop()
