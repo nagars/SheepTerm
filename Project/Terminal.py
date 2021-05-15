@@ -4,9 +4,46 @@ from tkinter import scrolledtext     # Import tkinter module for scroll text box
 from tkinter import ttk
 
 import serial                       # Import pyserial library
-import serial.tools.list_ports as port_list # Import function to list serial ports.
+# Import function to list serial ports.
+import serial.tools.list_ports as port_list
 from serial import SerialException  # Import pyserial exception handling
 
+'''
+Functions
+'''
+
+def open_com_port():
+    # Store user selected value
+    com_port_selected = com_ports_menu.get()
+    # Extract com port value
+    com_port = com_port_selected[0:4]
+
+    global serial_port
+    # Open selected com port with default parameters. Returned port handle is set as global variable
+    try:
+        serial_port = serial.Serial(port=com_port, baudrate=9600,
+                                    bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE,
+                                    parity=serial.PARITY_NONE)
+    # Check if COM port failed to open. Print error message
+    except SerialException:
+    #    terminal_box.insert('1.0', " is busy. Unable to open\n")
+    #   terminal_box.insert('1.0', com_port_given)
+    #    terminal_box.insert('1.0', "\n")
+        return
+  
+    # Print COM port opened successfully.
+    #terminal_box.insert('1.0', " opened successfully\n")
+    #terminal_box.insert('1.0', com_port_given)
+    #terminal_box.insert('1.0', "\n")
+
+    #Disable open com port button
+    open_com_button['state'] = 'disabled'
+
+
+
+'''
+Definitions
+'''
 # Generate GUI window
 window = Tk()
 # Define window size
@@ -16,9 +53,9 @@ window.title("Shawn's Serial Terminal")
 
 # Define a frame
 main_frame = Frame(window)
-main_frame.grid(column = 0, row = 0, sticky = (N,W,E,S))
-main_frame.columnconfigure(0, weight = 1)
-main_frame.rowconfigure(0, weight = 1)
+main_frame.grid(column=0, row=0, sticky=(N, W, E, S))
+main_frame.columnconfigure(0, weight=1)
+main_frame.rowconfigure(0, weight=1)
 
 # Define Widgets #
 
@@ -30,22 +67,16 @@ com_port_label.pack()
 # Define Drop down Menu for COM ports
 # List all the available serial ports
 com_ports_available = list(port_list.comports())
-num_ports = len(com_ports_available)
-com_ports_val = ""
-if(num_ports > 0):
-    n = 0
-    while(n < num_ports):
-        com_ports_val = com_ports_available[n][1:3]
 
-#Define the drop down menu
-com_ports_menu = ttk.Combobox(main_frame, value = com_ports_val)
+# Define the drop down menu
+com_ports_menu = ttk.Combobox(main_frame, value=com_ports_available)
 com_ports_menu.pack()
-#Store user selected value
-com_port_selected = com_ports_menu.get()
+com_ports_menu.current()
 
 # Define Set COM port button
+open_com_button = ttk.Button(main_frame, text="Open Port",
+                             command=open_com_port)
+open_com_button.pack()
 
-# 
-
-#Main loop
+# Main loop
 window.mainloop()
