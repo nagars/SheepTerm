@@ -8,6 +8,8 @@ from serial.serialutil import STOPBITS_ONE_POINT_FIVE
 import serial.tools.list_ports as port_list # Import function to list serial ports.
 from serial import SerialException  # Import pyserial exception handling
 
+import sercomm
+
 '''
 Functions
 '''
@@ -19,7 +21,7 @@ def print_to_terminal(msg):
     terminal_box.yview = END
     return
 
-
+"""
 def open_com_port():
     # Store user selected value
     com_port_selected = com_ports_menu.get()
@@ -54,6 +56,7 @@ def open_com_port():
     send_button['state'] = 'active'
     return
 
+"""
 
 def send_button_pressed():
 
@@ -63,12 +66,39 @@ def send_button_pressed():
     # Check if CRC is required
     
     # Transmit
-    serial_port.write(transmit_msg)
-
+    sercomm.serial_port.write(transmit_msg)
     # Check if echo is checked
 
 
-    return
+    return 
+
+
+def open_com_port():
+
+    # Extract com port value
+    com_port = com_ports_menu.get()[0:4]
+    
+    # Open port
+    status = sercomm.open_serial_com(com_port)
+
+    #Check return value
+    if status < 0:
+        print_to_terminal(com_port + " is busy. Unable to open")
+        return -1
+
+    # Print COM port opened successfully.
+    print_to_terminal(com_port + " opened successfully")
+
+    # Disable open com port button
+    open_com_button['state'] = 'disabled'
+
+    # Enable send message textbox
+    send_message_textbox['state'] = 'normal'
+
+    # Enable send message button
+    send_button['state'] = 'active'
+
+    return 0
 
 '''Functions: Frame Definitions'''
 def define_frame(container, position_y, position_x):
@@ -139,7 +169,8 @@ window.rowconfigure(0,weight=0)
 echo_flag = tkinter.BooleanVar()    # Checks if echo checkbox is set/cleared
 timestamp_flag = tkinter.BooleanVar() 
 include_null_flag = tkinter.BooleanVar()
-include_line_flag = tkinter.BooleanVar()
+include_new_line_flag = tkinter.BooleanVar()
+include_carriage_return_flag = tkinter.BooleanVar()
 
 # Create COM Frame #
 com_frame = define_frame(window,0,0)
@@ -151,7 +182,7 @@ com_ports_available = list(port_list.comports())
 com_ports_menu = define_drop_down(com_frame, com_ports_available, 'readonly', 1, 0)
 # Define Set COM port button
 open_com_button = define_button(com_frame, "Open Port", 'normal',
-                                open_com_port,2,0),
+                                open_com_port, 2,0),
 
 
 # Create Display Configure Frame #
@@ -174,10 +205,12 @@ data_types_menu = define_drop_down(config_frame, data_types, 'readonly',1,0)
 include_null_checkbox = define_checkbox(config_frame, "Include Null Character", "normal", 
                                         include_null_flag, 0, 3)
 #Create an include next line character checkbox
-include_line_checkbox = define_checkbox(config_frame, "Include Line Character", "normal",
-                                        include_line_flag, 0, 4)
+include_new_line_checkbox = define_checkbox(config_frame, "Include New Line Character", "normal",
+                                        include_new_line_flag, 0, 4)
 
-
+#Create an include next line character checkbox
+include_carriage_return_checkbox = define_checkbox(config_frame, "Include Carriage Return Character", "normal",
+                                        include_carriage_return_flag, 0, 5)
 
 # Create a text box to get the transmit message from user
 send_message_textbox = define_entry_textbox(window, 10, 'disabled', 1, 2)
