@@ -39,3 +39,21 @@ def open_serial_com(com_port):
     return 0
 
 
+def close_serial_com(com_port):
+
+    return 0
+
+
+def com_port_param_window():
+
+    #Create new window
+
+    #Generate frames and UI objects
+
+    return 0
+
+
+def set_com_port_param():
+
+
+    return 0

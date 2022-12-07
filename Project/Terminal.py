@@ -8,7 +8,7 @@ from serial.serialutil import STOPBITS_ONE_POINT_FIVE
 import serial.tools.list_ports as port_list # Import function to list serial ports.
 from serial import SerialException  # Import pyserial exception handling
 
-import sercomm
+import sercomm  #custom library built to handle communication 
 
 '''
 Functions
@@ -58,17 +58,24 @@ def open_com_port():
 
 """
 
+def clear_button_pressed():
+
+    # Enable editing of text box
+    terminal_box.config(state="normal")
+    # Delete all text in display
+    terminal_box.delete("1.0",END)
+    # Disable editing of text box
+    terminal_box.config(state="disabled")
+
+    return
+
 def send_button_pressed():
 
     # Read message to transmit from textbox
     transmit_msg = send_message_textbox.get()
-
-    # Check if CRC is required
     
     # Transmit
     sercomm.serial_port.write(transmit_msg)
-    # Check if echo is checked
-
 
     return 
 
@@ -98,13 +105,13 @@ def open_com_port():
     # Enable send message button
     send_button['state'] = 'active'
 
-    return 0
+    return com_port
 
 '''Functions: Frame Definitions'''
 def define_frame(container, position_y, position_x):
 
     frame = Frame(container)
-    frame.grid(column=position_y, row=position_x, sticky=(N, W, E, S))
+    frame.grid(column=position_y, row=position_x)
 
     return frame
 
@@ -112,8 +119,7 @@ def define_frame(container, position_y, position_x):
 def define_drop_down(container, content_list, default_state, position_y, position_x):
 
     menu = ttk.Combobox(container, value=content_list, state = default_state)
-    menu.grid(column=position_y, row=position_x)
-    menu.current()
+    menu.grid(column=position_y, row=position_x, padx=2, pady=2)
 
     return menu
 
@@ -121,59 +127,75 @@ def define_button(container, text, default_state, function_call, position_y, pos
     
     button = ttk.Button(container, text=text,
                         command=function_call, state=default_state)
-    button.grid(column=position_y, row=position_x)
+    button.grid(column=position_y, row=position_x, padx=2, pady=2)
 
-    return
+    return button
 
 def define_label(container, text, position_y, position_x):
 
     label = Label(container, text=text)
-    label.grid(column=0,row=0)
+    label.grid(column=0, row=0, padx=2, pady=2)
 
     return label
 
-def define_checkbox(container, text, default_state, status_variable, position_y, posiion_x):
+def define_checkbox(container, text, default_state, status_variable, position_y, position_x):
 
     checkbox = Checkbutton(container, text=text, variable=status_variable, state=default_state)
-    checkbox.grid(column=position_y,row=posiion_x)
+    checkbox.grid(column=position_y, row=position_x, padx=2, pady=2)
 
     return checkbox
 
 def define_scroll_textbox(container, width, height, position_y, position_x):
 
-    scrollbox = scrolledtext.ScrolledText(container, width=width, height=height)
-    scrollbox.grid(column=position_y, row=position_x)
+    scrollbox = scrolledtext.ScrolledText(container, width=width, height=height, state="disabled")
+    scrollbox.grid(column=position_y, row=position_x, padx=2, pady=2)
+    scrollbox.configure(font=("Times New Roman", 10))
 
     return scrollbox
 
 def define_entry_textbox(container, width, default_state, position_y, position_x):
     entrybox = Entry(container, width=width, state=default_state)
-    entrybox.grid(column=position_y, row=position_x)
+    entrybox.grid(column=position_y, row=position_x, padx=2, pady=2)
+    entrybox.configure(font=("Times New Roman", 10))
 
     return entrybox
 
 '''
-Definitions
+Frame Definitions
 '''
 # Generate GUI window
 window = Tk()
 # Define window size
-window.geometry('750x500')
+window.geometry('1000x500')
 # Set title for window
 window.title("Shawn's Serial Terminal")
-#Configure its layout
-window.columnconfigure(0,weight=0)
-window.rowconfigure(0,weight=0)
-
-# Variable Definitions
-echo_flag = tkinter.BooleanVar()    # Checks if echo checkbox is set/cleared
-timestamp_flag = tkinter.BooleanVar() 
-include_null_flag = tkinter.BooleanVar()
-include_new_line_flag = tkinter.BooleanVar()
-include_carriage_return_flag = tkinter.BooleanVar()
-
+# Create Display Configure Frame #
+config_frame = define_frame(window, 0, 1)
+config_frame.grid(sticky=NW)
 # Create COM Frame #
 com_frame = define_frame(window,0,0)
+com_frame.grid(sticky=NW)
+# Create a Terminal frame
+display_frame = define_frame(window,1,1)
+display_frame.grid(sticky=NSEW)
+# Create a boundary frame for the bottom
+south_boundary_frame = define_frame(window,0,2)
+south_boundary_frame.grid(sticky=NSEW)
+#Ensure display frame expands with window
+window.columnconfigure(1, weight=1)
+window.rowconfigure(1, weight=1)
+
+''' 
+Variable Definitions
+'''
+timestamp_flag = tkinter.BooleanVar() 
+include_new_line_flag = tkinter.BooleanVar()
+include_carriage_return_flag = tkinter.BooleanVar()
+logging_flag = tkinter.BooleanVar()
+
+'''
+Define COMM frame UI objects
+'''
 # Define a label for com port to be placed near text box
 com_port_label = define_label(com_frame, "COM PORT", 0, 0)
 # List all the available serial ports
@@ -182,45 +204,69 @@ com_ports_available = list(port_list.comports())
 com_ports_menu = define_drop_down(com_frame, com_ports_available, 'readonly', 1, 0)
 # Define Set COM port button
 open_com_button = define_button(com_frame, "Open Port", 'normal',
-                                open_com_port, 2,0),
-
-
-# Create Display Configure Frame #
-config_frame = define_frame(window, 0, 1)
+                                open_com_port, 2, 0),
+# Define a settings button for sercomm settings
+settings_button = define_button(com_frame, "Settings", 'normal',
+                                sercomm.com_port_param_window, 3,0)
+'''
+Define config frame UI objects
+'''
 # Define a label for data type drop down
 display_type_label = define_label(config_frame, "Display Type", 0, 0)
 display_type_label.grid(sticky=W)
-#Create an echo to terminal checkbox
-echo_checkbox = define_checkbox(config_frame, "Enable Echo", "normal", echo_flag, 0, 1)
-echo_checkbox.grid(sticky=W)
 #Create a show timestamp checkbox
 timestamp_checkbox = define_checkbox(config_frame, "Show Timestamp", 
                         "normal", timestamp_flag, 0, 2)
 timestamp_checkbox.grid(sticky=W)
+# Define a enable logging button
+enable_logging_checkbox = define_checkbox(config_frame, "Enable Logging",
+                        "normal", logging_flag, 0, 5)
+enable_logging_checkbox.grid(sticky=W)
 #Generate list of data types
 data_types = ["STRING","ASCII","HEX"]
 #Create a drop down menu with different datatypes to represent on terminal
 data_types_menu = define_drop_down(config_frame, data_types, 'readonly',1,0)
-#Create an include null character checkbox
-include_null_checkbox = define_checkbox(config_frame, "Include Null Character", "normal", 
-                                        include_null_flag, 0, 3)
+data_types_menu.grid(sticky=W)
+#Set default value of drop down menu
+data_types_menu.current(0)      
 #Create an include next line character checkbox
 include_new_line_checkbox = define_checkbox(config_frame, "Include New Line Character", "normal",
-                                        include_new_line_flag, 0, 4)
-
+                                        include_new_line_flag, 0, 3)
+include_new_line_checkbox.grid(sticky=W)
 #Create an include next line character checkbox
 include_carriage_return_checkbox = define_checkbox(config_frame, "Include Carriage Return Character", "normal",
-                                        include_carriage_return_flag, 0, 5)
+                                        include_carriage_return_flag, 0, 4)
+include_carriage_return_checkbox.grid(sticky=W)
 
-# Create a text box to get the transmit message from user
-send_message_textbox = define_entry_textbox(window, 10, 'disabled', 1, 2)
-
-# Create a button to send data on selected port
-send_button = define_button(window, "Send", 'disabled',
-                     send_button_pressed, 2, 2)
-
+'''
+Define Terminal frame UI objects
+'''
 # Create a scroll text box for the terminal
-terminal_box = define_scroll_textbox(window, 47, 20, 1, 1)
+terminal_box = define_scroll_textbox(display_frame, 50, 20, 0, 0)
+terminal_box.grid(sticky=NSEW)
+# Create a text box to get the transmit message from user
+send_message_textbox = define_entry_textbox(display_frame, 47, 'disabled', 0, 1)
+send_message_textbox.grid(sticky=NSEW)
+# Create a button to send data on selected port
+send_button = define_button(display_frame, "Send", 'disabled',
+                     send_button_pressed, 1, 1)
+send_button.grid(sticky=NSEW, padx=5, pady=5)
+# Create a clear terminal display button
+clear_button = define_button(display_frame, "Clear", 'normal',
+                     clear_button_pressed, 1, 0)
+clear_button.grid(sticky=SE, padx=5, pady=5)
+# Ensure the terminal box expands with the frame
+display_frame.columnconfigure(0, weight=1)
+display_frame.rowconfigure(0, weight=1)
 
-# Main loop
+'''
+Define Empty frame UI objects
+'''
+# Define an empty label to act as a spacer for the bottom 
+empty_label = define_label(south_boundary_frame, "", 0, 0)
+empty_label.grid(sticky=NSEW)
+
+'''
+Main loop
+'''
 window.mainloop()
