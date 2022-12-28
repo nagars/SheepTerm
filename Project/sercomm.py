@@ -6,17 +6,21 @@ from serial import SerialException  # Import pyserial exception handling
 '''
 Functions
 '''
-"""
-def print_to_terminal(terminal_box,msg):
-    terminal_box.insert(END, msg)
-    terminal_box.insert(END, '\n')
 
-    # Reset position index to have messages scroll down
-    terminal_box.yview = END
-    return
-"""
+'''
+Function Description: open com port to USBtoTTL converter
+with default settings unless specified otherwise
 
-def open_serial_com(com_port):
+Parameters: com_port - com port to open
+baud - baud rate (default 9600)
+bytes_size = size of each packet (default 8)
+timeout - wait time for new packets during reception (default 2 sec)
+stop_bits - number of stop bits (default one)
+parity_bits - parity (default none)
+
+return - 0 on success, -1 on failure
+'''
+def open_serial_com(com_port, baud = 9600, bytes_size = 8, time_out = 2, stop_bits = serial.STOPBITS_ONE, parity_bit = serial.PARITY_NONE):
     # Store user selected value
     #com_port_selected = com_ports_menu.get()
     # Extract com port value
@@ -24,22 +28,36 @@ def open_serial_com(com_port):
 
     # Ensure a com port was selected
     if(com_port == ''):
-        return
+        return -1
 
     global serial_port
     # Open selected com port with default parameters. Returned port handle is set as global variable
     try:
-        serial_port = serial.Serial(port=com_port, baudrate=9600,
-                                    bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE,
-                                    parity=serial.PARITY_NONE)
+        #serial_port = serial.Serial(port=com_port, baudrate=9600,
+        #                            bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE,
+        #                            parity=serial.PARITY_NONE)
+        serial_port = serial.Serial(port = com_port, baudrate = baud, bytesize = bytes_size, timeout = time_out, 
+                                    stopbits = stop_bits, parity = parity_bit)
     # Check if COM port failed to open. Return failure value
     except SerialException:
+        return -1
+
+    # Check for incorrect input value
+    except ValueError:
         return -1
 
     return 0
 
 
-def close_serial_com(com_port):
+def close_serial_com():
+
+    # Check if serial_port is defined
+    try: serial_port
+    except NameError: 
+       return -1
+
+    # Close serial port
+    serial_port.close()
 
     return 0
 
