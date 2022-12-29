@@ -20,7 +20,8 @@ parity_bits - parity (default none)
 
 return - 0 on success, -1 on failure
 '''
-def open_serial_com(com_port, baud = 9600, bytes_size = 8, time_out = 2, stop_bits = serial.STOPBITS_ONE, parity_bit = serial.PARITY_NONE):
+def open_serial_com(com_port, baud = 9600, bytes_size = 8, time_out = 2, stop_bits = serial.STOPBITS_ONE, 
+                    parity_bit = serial.PARITY_NONE):
     # Store user selected value
     #com_port_selected = com_ports_menu.get()
     # Extract com port value
@@ -62,16 +63,3 @@ def close_serial_com():
     return 0
 
 
-def com_port_param_window():
-
-    #Create new window
-
-    #Generate frames and UI objects
-
-    return 0
-
-
-def set_com_port_param():
-
-
-    return 0
