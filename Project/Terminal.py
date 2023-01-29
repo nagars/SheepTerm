@@ -8,6 +8,8 @@ from serial.serialutil import STOPBITS_ONE_POINT_FIVE
 import serial.tools.list_ports as port_list # Import function to list serial ports.
 from serial import SerialException  # Import pyserial exception handling
 
+from datetime import datetime   #Import system date library
+
 import sercomm      # custom library built to handle communication 
 import settings_ui  # custom library built to manage the settings window 
 import ui_objects   # custom library built to handle common UI objects
@@ -20,11 +22,22 @@ Parameters: msg - string to print to terminal
 Return: void
 '''
 def print_to_terminal(msg):
+
+    # Enable editing of text box
+    terminal_box.config(state="normal")
+
+    #Check if timestamp is required
+    if (timestamp_flag.get() == TRUE):
+        msg = datetime.now().strftime('%H:%M:%S.%f')[:-3] + " :\t\t" + msg
+
     terminal_box.insert(END, msg)
     terminal_box.insert(END, '\n')
 
     # Reset position index to have messages scroll down
     terminal_box.yview = END
+
+    # Disable editing of text box
+    terminal_box.config(state="disabled")
     return
 
 
@@ -42,6 +55,7 @@ def close_window():
 
     # Terminate window
     window.destroy()
+    return
 
 
 '''
@@ -59,6 +73,7 @@ def clear_button_pressed():
     terminal_box.delete("1.0",END)
     # Disable editing of text box
     terminal_box.config(state="disabled")
+    return
 
 
 '''
@@ -73,9 +88,18 @@ def send_button_pressed():
 
     # Read message to transmit from textbox
     transmit_msg = send_message_textbox.get()
+
+    # If Carriage return check box is selected, append \r
+    if include_carriage_return_checkbox.get() == True:
+        transmit_msg += '\r'
+
+    # If Next line check box is selected, append \n
+    if include_new_line_checkbox.get() == True:
+        transmit_msg += '\n'
     
     # Transmit
     sercomm.serial_port.write(transmit_msg)
+    return
 
 
 '''
@@ -90,6 +114,11 @@ def open_com_port():
 
     # Extract com port value
     com_port = com_ports_menu.get()[0:4]
+
+    #Ensure a com port was selected
+    if com_port == '':
+        print_to_terminal("No COM port selected!")
+        return -1
     
     # Get user assigned com port settings
     sercomm_settings = settings_ui.get_sercomm_settings()

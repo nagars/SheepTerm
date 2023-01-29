@@ -87,7 +87,6 @@ Parameters: container - Main window object
 test - label text
 default_state - active / inactive
 status_variable - checked / unchecked
-
 position_y - columnm index for frame position
 position_x - row index for frame position
 

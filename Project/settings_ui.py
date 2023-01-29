@@ -7,8 +7,10 @@ from serial.serialutil import STOPBITS_ONE_POINT_FIVE
 import serial.tools.list_ports as port_list # Import function to list serial ports.
 from serial import SerialException  # Import pyserial exception handling
 
+from datetime import datetime   #Import system date library
+
 import ui_objects   # custom library built to handle common UI objects
-import sercomm  
+import sercomm  # custom library for sercomm api
 
 '''
 Structure and Enumaerations
@@ -21,7 +23,7 @@ class com_struct:
     def __init__(self):
         self.baud = 9600
         self.bytesize = 8
-        self.paritybits = "None"
+        self.paritybits = serial.PARITY_NONE
         self.stopbits = 1
         self.readtimeout = 0
         self.logging = 0
@@ -72,7 +74,7 @@ def define_sercomm_settings_window():
     baud_rate_label.grid(sticky=W)
     # Generate list of baud rates
     bauds = [50, 75, 110, 134, 150, 200, 300, 600, 1200, 1800, 
-                2400, 4800, 9600, 19200, 38400, 57600, 115200,  230400, 
+                2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 
                 460800, 500000, 576000, 921600, 1000000, 1152000, 1500000, 
                 2000000, 2500000, 3000000, 3500000, 4000000]
     # Create a drop down menu with different baud rates
@@ -80,7 +82,7 @@ def define_sercomm_settings_window():
     g_baud_rate_dd = ui_objects.define_drop_down(config_frame0, bauds, 'readonly', 1, 0)
     g_baud_rate_dd.grid(sticky=W)
     # Set default value (9600) of drop down menu
-    g_baud_rate_dd.current(12) 
+    g_baud_rate_dd.current(bauds.index(int(g_com_settings.baud))) 
 
     # Define a label for bytesize
     bytesize_label = ui_objects.define_label(config_frame0, "Byte size: ", 0, 1)
@@ -92,7 +94,7 @@ def define_sercomm_settings_window():
     g_bytesize_dd = ui_objects.define_drop_down(config_frame0, bytesize, 'readonly', 1, 1)
     g_bytesize_dd.grid(sticky=W)
     # Set default value (8 bits) of drop down menu
-    g_bytesize_dd.current(3)
+    g_bytesize_dd.current(bytesize.index(int(g_com_settings.bytesize)))
 
     # Define a label for parity bits
     paritybits_label = ui_objects.define_label(config_frame0, "Parity bits: ", 0, 2)
@@ -104,7 +106,17 @@ def define_sercomm_settings_window():
     g_paritybits_dd = ui_objects.define_drop_down(config_frame0, paritybits, 'readonly', 1, 2)
     g_paritybits_dd.grid(sticky=W)
     # Set default value (None) of drop down menu
-    g_paritybits_dd.current(0)
+    match g_com_settings.paritybits:
+        case "N":
+            g_paritybits_dd.current(paritybits.index("None"))
+        case "E":
+            g_paritybits_dd.current(paritybits.index("Even"))
+        case "O":
+            g_paritybits_dd.current(paritybits.index("Odd"))
+        case "M":
+            g_paritybits_dd.current(paritybits.index("Mark"))
+        case "S":
+            g_paritybits_dd.current(paritybits.index("Space"))
 
     # Define a label for stop bits
     stopbits_label = ui_objects.define_label(config_frame0, "Stop bits: ", 0, 3)
@@ -115,8 +127,8 @@ def define_sercomm_settings_window():
     global g_stopbits_dd 
     g_stopbits_dd = ui_objects.define_drop_down(config_frame0, stopbits, 'readonly', 1, 3)
     g_stopbits_dd.grid(sticky=W)
-    # Set default value (None) of drop down menu
-    g_stopbits_dd.current(0)
+    # Set default value (1) of drop down menu
+    g_stopbits_dd.current(stopbits.index(float(g_com_settings.stopbits)))
 
     # Define Read timeout
     # Define a label for read timeout
@@ -126,6 +138,7 @@ def define_sercomm_settings_window():
     global g_timeout_textbox
     g_timeout_textbox = ui_objects.define_entry_textbox(config_frame0, 1, 'normal', 1, 4)
     g_timeout_textbox.grid(sticky=NSEW)
+    g_timeout_textbox.insert(0,g_com_settings.readtimeout)
 
     # Define an enable logging checkbox
     enable_logging_checkbox = ui_objects.define_checkbox(config_frame0, "Enable Logging",
@@ -135,7 +148,7 @@ def define_sercomm_settings_window():
     # Define a choose file button for logging
     global g_choose_file_button
     g_choose_file_button = ui_objects.define_button(config_frame0, "Choose file", 'disabled',
-                                select_file, 1, 5)
+                               select_file, 1, 5)
     g_choose_file_button.grid(sticky=W)
 
     # Create a text box to get the transmit message from user
@@ -158,12 +171,16 @@ def define_sercomm_settings_window():
 
 def select_file():
 
+    filename = "log_" + datetime.now().strftime('%H-%M-%S') + "_.csv"
+    f = asksaveasfile(initialfile = filename,
+    defaultextension=".csv", filetypes=[(".csv", "*.csv")])
+
     return
 
 def confirm_settings():
 
     # Save logging file if required
-    
+    select_file()
 
     # Modify parity bit option to format required by function
     match g_paritybits_dd.get():
@@ -181,12 +198,20 @@ def confirm_settings():
             return -1
 
 
+    #Ensure timeout value is a valid numeric value
+    if (g_timeout_textbox.get().isnumeric() == FALSE):
+        g_settings_window.bell()
+        return -1
+
     # Set value in global struct
     g_com_settings.baud = g_baud_rate_dd.get()
     g_com_settings.bytesize = g_bytesize_dd.get()
     g_com_settings.stopbits =  g_stopbits_dd.get()
     g_com_settings.paritybits = parity_bit
     g_com_settings.readtimeout = g_timeout_textbox.get()
+
+    # Ensure value given as read timeout is a valid int
+
     #g_com_settings.logging = 
 
     # reopen with new values
