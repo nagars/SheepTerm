@@ -38,7 +38,7 @@ def open_serial_com(com_port, baud = 9600, bytes_size = 8, time_out = 2, stop_bi
         #                            bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE,
         #                            parity=serial.PARITY_NONE)
         serial_port = serial.Serial(port = com_port, baudrate = baud, bytesize = bytes_size, timeout = time_out, 
-                                    stopbits = stop_bits, parity = parity_bit)
+                                    stopbits = stop_bits, parity = parity_bit)#, rtscts = False, dtscts = False)
     # Check if COM port failed to open. Return failure value
     except SerialException:
         return -1

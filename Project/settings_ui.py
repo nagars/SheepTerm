@@ -13,7 +13,7 @@ import ui_objects   # custom library built to handle common UI objects
 import sercomm  # custom library for sercomm api
 
 '''
-Structure and Enumaerations
+Structure andEnumaerations
 '''
 
 '''
@@ -26,7 +26,7 @@ class com_struct:
         self.paritybits = serial.PARITY_NONE
         self.stopbits = 1
         self.readtimeout = 0
-        self.logging = 0
+        self.logfile = 0
 
 
 g_com_settings = com_struct() # Object of class to store comm settings
@@ -140,9 +140,12 @@ def define_sercomm_settings_window():
     g_timeout_textbox.grid(sticky=NSEW)
     g_timeout_textbox.insert(0,g_com_settings.readtimeout)
 
+    global g_enable_logging_flag
+    # Enable logging disabled by default
+    g_enable_logging_flag = FALSE
     # Define an enable logging checkbox
     enable_logging_checkbox = ui_objects.define_checkbox(config_frame0, "Enable Logging",
-                        "normal", None, enable_logging, 0, 5)
+                        "normal", g_enable_logging_flag, enable_logging, 0, 5)
     enable_logging_checkbox.grid(sticky=W)
 
     # Define a choose file button for logging
@@ -171,16 +174,19 @@ def define_sercomm_settings_window():
 
 def select_file():
 
-    filename = "log_" + datetime.now().strftime('%H-%M-%S') + "_.csv"
-    f = asksaveasfile(initialfile = filename,
+    # Define the name of the log file as "log"_"Date"_"Time"_.csv
+    filename = "log_" + datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + "_.csv"
+    # Define a global vairable for the log file IO
+    global g_logfile
+    g_logfile = asksaveasfile(initialfile = filename,
     defaultextension=".csv", filetypes=[(".csv", "*.csv")])
+
+    # Write the directory of the log file to the log file text box
+
 
     return
 
 def confirm_settings():
-
-    # Save logging file if required
-    select_file()
 
     # Modify parity bit option to format required by function
     match g_paritybits_dd.get():
@@ -198,10 +204,15 @@ def confirm_settings():
             return -1
 
 
-    #Ensure timeout value is a valid numeric value
+    # Ensure timeout value is a valid numeric value
     if (g_timeout_textbox.get().isnumeric() == FALSE):
         g_settings_window.bell()
         return -1
+
+    # Ensure timeout value is positive
+    #if (g_timeout_textbox.get() < 0):
+    #    g_settings_window.bell()
+    #    return -1
 
     # Set value in global struct
     g_com_settings.baud = g_baud_rate_dd.get()
@@ -210,13 +221,14 @@ def confirm_settings():
     g_com_settings.paritybits = parity_bit
     g_com_settings.readtimeout = g_timeout_textbox.get()
 
-    # Ensure value given as read timeout is a valid int
 
-    #g_com_settings.logging = 
-
-    # reopen with new values
-    #sercomm.open_serial_com(com_port, g_baud_rate_dd.get(), g_bytesize_dd.get(), g_timeout_textbox.get(),
-    #                        g_stopbits_dd.get(), parity_bit)
+    if(g_enable_logging_flag == FALSE):
+        g_com_settings.logfile = 0
+    elif(g_enable_logging_flag == TRUE & g_logfile == 0):
+        g_settings_window.bell()
+        return -1
+    elif(g_enable_logging_flag == TRUE & g_logfile != 0):
+        g_com_settings.logfile = g_logfile
 
     # close window
     g_settings_window.destroy()
