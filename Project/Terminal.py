@@ -10,9 +10,53 @@ from serial import SerialException  # Import pyserial exception handling
 
 from datetime import datetime   #Import system date library
 
+import threading #Imports python threading module
+
 import sercomm      # custom library built to handle communication 
 import settings_ui  # custom library built to manage the settings window 
 import ui_objects   # custom library built to handle common UI objects
+
+'''
+Function Description: Function to be called as separate thread. Receives data
+from serial port, logs if required, converts to selected display format
+and prints to terminal
+
+Parameters: void
+
+Return: void
+'''
+def receive_thread():
+
+    while TRUE:
+        # Wait for data from serial port
+        msg = sercomm.serial_port.read(size=None)
+
+        # Change data format based on drop down menu selection
+        match data_types_dd.get():
+            case "STRING":
+                print_msg = msg    
+            case "ASCII":
+                for i in msg:
+                    print_msg = ',' + int(i, base=16)
+            case "HEX":
+                for i in msg:
+                    print_msg = ',' + hex(int(i, base=16))
+            case _:
+                return -1
+
+        # Log data if required
+        curr_sercom_settings = settings_ui.get_sercomm_settings()
+        if curr_sercom_settings.logfile != None:
+            # Write to .csv file
+
+            # Append new line character
+            print_msg += '\n'
+        
+        # Print to terminal
+        print_to_terminal(print_msg)
+
+    return
+
 
 '''
 Function Description: Prints string to globally defined scroll terminal object
@@ -148,6 +192,15 @@ def open_com_port():
     # Disable settings button
     settings_button['state'] = 'normal'
 
+    # Disable drop down menu for com ports
+    com_ports_menu['state'] = 'disabled'
+
+    # Set current com port variable in com settings struct
+    settings_ui.set_com_port(com_port)
+
+    # Create receive thread to print to terminal
+    threading.Thread(target=receive_thread).start()
+
     return com_port
 
 
@@ -195,13 +248,20 @@ Define COMM frame UI objects
 com_port_label = ui_objects.define_label(com_frame, "COM PORT", 0, 0)
 # List all the available serial ports
 com_ports_available = list(port_list.comports())
+# Remove unusable com port options
+# (NULL appended com port names seem to appear. Possibly due to using
+#  virtual com ports?)
+for item in com_ports_available:
+    if str(item)[0:5] == "NULL_":
+        com_ports_available.remove(item)
+
 # Define the drop down menu for com ports
 com_ports_menu = ui_objects.define_drop_down(com_frame, com_ports_available, 'readonly', 1, 0)
 # Define Set COM port button
 open_com_button = ui_objects.define_button(com_frame, "Open Port", 'normal',
                                 open_com_port, 2, 0)
 # Define a settings button for sercomm settings
-settings_button = ui_objects.define_button(com_frame, "Settings", 'normal',
+settings_button = ui_objects.define_button(com_frame, "Settings", 'disabled',
                                 settings_ui.define_sercomm_settings_window, 3, 0)
 
 

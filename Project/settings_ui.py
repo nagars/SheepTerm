@@ -8,12 +8,14 @@ import serial.tools.list_ports as port_list # Import function to list serial por
 from serial import SerialException  # Import pyserial exception handling
 
 from datetime import datetime   #Import system date library
+import os #Import directory manipulation library
+from tkinter import filedialog 
 
 import ui_objects   # custom library built to handle common UI objects
 import sercomm  # custom library for sercomm api
 
 '''
-Structure andEnumaerations
+Structure and Enumaerations
 '''
 
 '''
@@ -21,23 +23,24 @@ Class used as struct to store comm settings
 '''
 class com_struct:
     def __init__(self):
+        self.port = None
         self.baud = 9600
         self.bytesize = 8
         self.paritybits = serial.PARITY_NONE
         self.stopbits = 1
         self.readtimeout = 0
-        self.logfile = 0
-
+        self.logfile = None   # Used to store a file object
 
 g_com_settings = com_struct() # Object of class to store comm settings
-
 
 '''
 Functions
 '''
+def set_com_port(port):
+    g_com_settings.port = port
+    return
 
 def get_sercomm_settings():
-
     return g_com_settings
 
 '''
@@ -53,7 +56,7 @@ def define_sercomm_settings_window():
     # Create new window over the main window
     global g_settings_window
     g_settings_window = Toplevel()
-    g_settings_window.geometry("440x210")
+    g_settings_window.geometry("270x210")
     g_settings_window.resizable(width=False, height=False)
     g_settings_window.title("Shawn's COM port settings")
 
@@ -138,7 +141,7 @@ def define_sercomm_settings_window():
     global g_timeout_textbox
     g_timeout_textbox = ui_objects.define_entry_textbox(config_frame0, 1, 'normal', 1, 4)
     g_timeout_textbox.grid(sticky=NSEW)
-    g_timeout_textbox.insert(0,g_com_settings.readtimeout)
+    g_timeout_textbox.insert(0, g_com_settings.readtimeout)
 
     global g_enable_logging_flag
     # Enable logging disabled by default
@@ -147,18 +150,6 @@ def define_sercomm_settings_window():
     enable_logging_checkbox = ui_objects.define_checkbox(config_frame0, "Enable Logging",
                         "normal", g_enable_logging_flag, enable_logging, 0, 5)
     enable_logging_checkbox.grid(sticky=W)
-
-    # Define a choose file button for logging
-    global g_choose_file_button
-    g_choose_file_button = ui_objects.define_button(config_frame0, "Choose file", 'disabled',
-                               select_file, 1, 5)
-    g_choose_file_button.grid(sticky=W)
-
-    # Create a text box to get the transmit message from user
-    # Defined global so toggle function can access it
-    global g_logfile_textbox 
-    g_logfile_textbox = ui_objects.define_entry_textbox(config_frame0, 47, 'disabled', 0, 6)
-    g_logfile_textbox.grid(sticky=NSEW)
 
     # Define a set port settings button
     confirm_button = ui_objects.define_button(config_frame1, "Confirm", 'normal',
@@ -170,23 +161,33 @@ def define_sercomm_settings_window():
                                 g_settings_window.destroy, 0, 0)
     cancel_button.grid(sticky=E)
 
-    return
-
-def select_file():
-
-    # Define the name of the log file as "log"_"Date"_"Time"_.csv
-    filename = "log_" + datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + "_.csv"
-    # Define a global vairable for the log file IO
-    global g_logfile
-    g_logfile = asksaveasfile(initialfile = filename,
-    defaultextension=".csv", filetypes=[(".csv", "*.csv")])
-
-    # Write the directory of the log file to the log file text box
-
+    if g_com_settings.logfile != None:
+        enable_logging_checkbox['state'] = "disabled"
+        #g_enable_logging_flag = TRUE
 
     return
 
 def confirm_settings():
+
+    # Tracks previously set port settings
+    com_setting_orig = g_com_settings
+
+    # Ensure log file checkbox is selected and appropriate directory
+    # has been chosen by user
+    if(g_enable_logging_flag == TRUE):
+
+        # Define the name of the log file as "log"_"Date"_"Time"_.csv
+        filename = "log_" + datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + "_.csv"
+
+        g_com_settings.logfile = asksaveasfile(initialfile = filename,
+        defaultextension=".csv", filetypes=[(".csv", "*.csv")])
+
+        # Check if cancel button was clicked by user in savfileas dialog
+        if g_com_settings.logfile == None:
+            return -1
+
+    elif(g_enable_logging_flag == FALSE):
+       g_com_settings.logfile = None
 
     # Modify parity bit option to format required by function
     match g_paritybits_dd.get():
@@ -203,16 +204,10 @@ def confirm_settings():
         case _:
             return -1
 
-
     # Ensure timeout value is a valid numeric value
     if (g_timeout_textbox.get().isnumeric() == FALSE):
         g_settings_window.bell()
         return -1
-
-    # Ensure timeout value is positive
-    #if (g_timeout_textbox.get() < 0):
-    #    g_settings_window.bell()
-    #    return -1
 
     # Set value in global struct
     g_com_settings.baud = g_baud_rate_dd.get()
@@ -221,26 +216,34 @@ def confirm_settings():
     g_com_settings.paritybits = parity_bit
     g_com_settings.readtimeout = g_timeout_textbox.get()
 
+    # Only close and reopen port if given settings have changed
+    # since previous port settings
+    if(com_setting_orig != g_com_settings):
 
-    if(g_enable_logging_flag == FALSE):
-        g_com_settings.logfile = 0
-    elif(g_enable_logging_flag == TRUE & g_logfile == 0):
-        g_settings_window.bell()
-        return -1
-    elif(g_enable_logging_flag == TRUE & g_logfile != 0):
-        g_com_settings.logfile = g_logfile
+        sercomm.close_serial_com()
+
+        status = sercomm.open_serial_com(g_com_settings.port, g_com_settings.baud, 
+        g_com_settings.bytesize, g_com_settings.readtimeout, g_com_settings.stopbits, 
+        g_com_settings.paritybits)
+
+        if status < 0:
+            g_settings_window.bell()
+            return -1
 
     # close window
     g_settings_window.destroy()
 
+    return 0
+
 
 def enable_logging():
+    global g_enable_logging_flag    #Define scope of variable
+    #Python seems to think its a local for some reason otherwise
+    
     # Enable log file textbox if checkbox is set
-    if (g_logfile_textbox['state'] == "disabled"):
-        g_logfile_textbox['state'] = "normal"
-        g_choose_file_button['state'] = "normal"
-    else:
-        g_logfile_textbox['state'] = "disabled"
-        g_choose_file_button['state'] = "disabled"
+    if g_enable_logging_flag == TRUE:
 
+        g_enable_logging_flag = FALSE
+    else:    
+        g_enable_logging_flag = TRUE
 
