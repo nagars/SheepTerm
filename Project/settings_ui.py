@@ -7,6 +7,8 @@ from serial.serialutil import STOPBITS_ONE_POINT_FIVE
 import serial.tools.list_ports as port_list # Import function to list serial ports.
 from serial import SerialException  # Import pyserial exception handling
 
+import copy     # Import copy module for shallow copy of objects
+
 from datetime import datetime   #Import system date library
 import os #Import directory manipulation library
 from tkinter import filedialog 
@@ -15,7 +17,7 @@ import ui_objects   # custom library built to handle common UI objects
 import sercomm  # custom library for sercomm api
 
 '''
-Structure and Enumaerations
+Structure and Enumerations
 '''
 
 '''
@@ -28,8 +30,23 @@ class com_struct:
         self.bytesize = 8
         self.paritybits = serial.PARITY_NONE
         self.stopbits = 1
-        self.readtimeout = 0
+        self.readtimeout = 1
         self.logfile = None   # Used to store a file object
+    
+    # To perform a comparison of 2 objects of this class, I
+    # chose to over ride the comparison operator
+    def __eq__(objA, objB): 
+        if not isinstance(objB, com_struct):
+            # Don't attempt to compare against unrelated types
+            raise Exception ("Objects to be compared are not the same class")
+
+        return objA.port == objB.port \
+            and objA.baud == objB.baud \
+            and objA.bytesize == objB.bytesize \
+            and objA.paritybits == objB.paritybits \
+            and objA.stopbits == objB.stopbits \
+            and objA.readtimeout == objB.readtimeout \
+            and objA.logfile == objB.logfile
 
 g_com_settings = com_struct() # Object of class to store comm settings
 
@@ -41,7 +58,7 @@ def set_com_port(port):
     return
 
 def get_sercomm_settings():
-    return g_com_settings
+    return copy.copy(g_com_settings)
 
 '''
 Function Description: Generates a new window designed to set various
@@ -63,6 +80,8 @@ def define_sercomm_settings_window():
     # Disabled access to main terminal window
     g_settings_window.grab_set()
     g_settings_window.focus()
+    # Install window close routine
+    g_settings_window.protocol("WM_DELETE_WINDOW",g_settings_window.destroy)
 
     # Create new frames
     config_frame0 = ui_objects.define_frame(g_settings_window, 0, 0)
@@ -155,6 +174,8 @@ def define_sercomm_settings_window():
     confirm_button = ui_objects.define_button(config_frame1, "Confirm", 'normal',
                                 confirm_settings, 1, 0)
     confirm_button.grid(sticky=E)
+    # Bind enter key to confirm button by default
+    g_settings_window.protocol("<Return>",confirm_settings)
 
     # Define a cancel button
     cancel_button = ui_objects.define_button(config_frame1, "Cancel", 'normal',
@@ -163,14 +184,15 @@ def define_sercomm_settings_window():
 
     if g_com_settings.logfile != None:
         enable_logging_checkbox['state'] = "disabled"
-        #g_enable_logging_flag = TRUE
 
     return
 
 def confirm_settings():
 
+    global g_com_settings
     # Tracks previously set port settings
-    com_setting_orig = g_com_settings
+    com_settings_new = com_struct
+    com_settings_new = copy.deepcopy(g_com_settings)
 
     # Ensure log file checkbox is selected and appropriate directory
     # has been chosen by user
@@ -179,15 +201,15 @@ def confirm_settings():
         # Define the name of the log file as "log"_"Date"_"Time"_.csv
         filename = "log_" + datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + "_.csv"
 
-        g_com_settings.logfile = asksaveasfile(initialfile = filename,
+        com_settings_new.logfile = asksaveasfile(initialfile = filename,
         defaultextension=".csv", filetypes=[(".csv", "*.csv")])
 
         # Check if cancel button was clicked by user in savfileas dialog
-        if g_com_settings.logfile == None:
+        if com_settings_new.logfile == None:
             return -1
 
     elif(g_enable_logging_flag == FALSE):
-       g_com_settings.logfile = None
+       com_settings_new.logfile = None
 
     # Modify parity bit option to format required by function
     match g_paritybits_dd.get():
@@ -210,15 +232,15 @@ def confirm_settings():
         return -1
 
     # Set value in global struct
-    g_com_settings.baud = g_baud_rate_dd.get()
-    g_com_settings.bytesize = g_bytesize_dd.get()
-    g_com_settings.stopbits =  g_stopbits_dd.get()
-    g_com_settings.paritybits = parity_bit
-    g_com_settings.readtimeout = g_timeout_textbox.get()
+    com_settings_new.baud = g_baud_rate_dd.get()
+    com_settings_new.bytesize = g_bytesize_dd.get()
+    com_settings_new.stopbits =  g_stopbits_dd.get()
+    com_settings_new.paritybits = parity_bit
+    com_settings_new.readtimeout = g_timeout_textbox.get()
 
     # Only close and reopen port if given settings have changed
     # since previous port settings
-    if(com_setting_orig != g_com_settings):
+    if(com_settings_new != g_com_settings):
 
         sercomm.close_serial_com()
 
@@ -226,9 +248,14 @@ def confirm_settings():
         g_com_settings.bytesize, g_com_settings.readtimeout, g_com_settings.stopbits, 
         g_com_settings.paritybits)
 
+        # If opening the serial com port failed
+
         if status < 0:
             g_settings_window.bell()
             return -1
+
+        # Update global comm settings
+        g_com_settings = com_settings_new
 
     # close window
     g_settings_window.destroy()

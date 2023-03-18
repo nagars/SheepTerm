@@ -40,8 +40,18 @@ def open_serial_com(com_port, baud = 9600, bytes_size = 8, time_out = 2, stop_bi
     except ValueError:
         return -1
 
+    # Flush the port
+    g_serial_port.flush()
+
     return 0
 
+def write_serial_com(data):
+    
+    return g_serial_port.write(data.encode())
+
+def read_serial_com(size=1):
+    
+    return g_serial_port.read(size)
 
 def close_serial_com():
 

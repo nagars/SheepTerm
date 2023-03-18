@@ -1,3 +1,4 @@
+'''Generic Modules'''
 import tkinter                       # Import tkinter library used to generate GUI
 from tkinter import *                # Import tkinter modules used to generate GUI
 from tkinter import scrolledtext     # Import tkinter module for scroll text box
@@ -6,13 +7,14 @@ from tkinter import ttk
 import serial  # Import pyserial library
 from serial.serialutil import STOPBITS_ONE_POINT_FIVE       
 import serial.tools.list_ports as port_list # Import function to list serial ports.
-from serial import SerialException  # Import pyserial exception handling
+from serial import SerialException          # Import pyserial exception handling
 
 from datetime import datetime   #Import system date library
 
-import threading #Imports python threading module
+import threading                #Imports python threading module
 
-import sercomm      # custom library built to handle communication 
+'''Custom Modules'''
+import sercomm      # custom library built to handle communication
 import settings_ui  # custom library built to manage the settings window 
 import ui_objects   # custom library built to handle common UI objects
 
@@ -27,20 +29,32 @@ Return: void
 '''
 def receive_thread():
 
-    while TRUE:
-        # Wait for data from serial port
-        msg = sercomm.serial_port.read(size=None)
+    serial_timout_occurred = FALSE
+    # Maintain the thread until the terminate event flag is set
+    # flag is set when the user attempts to close the window and
+    # terminate the program
+    while not g_terminate_event.is_set():
+        # Get data from serial port
+        # Convert to string from bytes
+        msg = (sercomm.read_serial_com()).decode("UTF-8")
+        # If length of msg is 0, a timeout has occurred with no data received
+        if len(msg) == 0:
+            serial_timout_occurred = TRUE
+            continue
 
         # Change data format based on drop down menu selection
         match data_types_dd.get():
             case "STRING":
                 print_msg = msg    
+            
             case "ASCII":
                 for i in msg:
-                    print_msg = ',' + int(i, base=16)
+                    print_msg = str(ord(i)) + ' '
+           
             case "HEX":
                 for i in msg:
-                    print_msg = ',' + hex(int(i, base=16))
+                    print_msg = str(hex(ord(i))[2:]) + ' '
+            
             case _:
                 return -1
 
@@ -50,13 +64,24 @@ def receive_thread():
             # Write to .csv file
 
             # Append new line character
-            print_msg += '\n'
+            pass
         
+        # Check if a timeout has occurred
+        if serial_timout_occurred == TRUE:
+
+            #Check if timestamp is required. Append to message
+            if (timestamp_flag.get() == TRUE):
+                print_msg = datetime.now().strftime('%H:%M:%S.%f')[:-3] + " :\t\t" + print_msg
+
+            serial_timout_occurred = FALSE
+
+            print_to_terminal('\n' + print_msg)
+            continue
+
         # Print to terminal
         print_to_terminal(print_msg)
 
     return
-
 
 '''
 Function Description: Prints string to globally defined scroll terminal object
@@ -70,13 +95,8 @@ def print_to_terminal(msg):
     # Enable editing of text box
     terminal_box.config(state="normal")
 
-    #Check if timestamp is required
-    if (timestamp_flag.get() == TRUE):
-        msg = datetime.now().strftime('%H:%M:%S.%f')[:-3] + " :\t\t" + msg
-
     terminal_box.insert(END, msg)
-    terminal_box.insert(END, '\n')
-
+    
     # Reset position index to have messages scroll down
     terminal_box.yview = END
 
@@ -94,8 +114,24 @@ Return: void
 '''
 def close_window():
     
+    # Check if the receive thread was started
+    try:
+        g_receive_thread
+
+    except NameError:
+        pass
+
+    else:
+        # Set terminate flag for receive thread
+        g_terminate_event.set()
+
+        # wait till receive thread is terminated
+        g_receive_thread.join()
+
     # Close the com port
     sercomm.close_serial_com()
+
+    # Close file pointer for logger
 
     # Terminate window
     window.destroy()
@@ -134,15 +170,15 @@ def send_button_pressed():
     transmit_msg = send_message_textbox.get()
 
     # If Carriage return check box is selected, append \r
-    if include_carriage_return_checkbox.get() == True:
+    if include_carriage_return_flag.get() == True:
         transmit_msg += '\r'
 
     # If Next line check box is selected, append \n
-    if include_new_line_checkbox.get() == True:
+    if include_new_line_flag.get() == True:
         transmit_msg += '\n'
     
     # Transmit
-    sercomm.serial_port.write(transmit_msg)
+    sercomm.write_serial_com(transmit_msg)
     return
 
 
@@ -158,10 +194,12 @@ def open_com_port():
 
     # Extract com port value
     com_port = com_ports_menu.get()[0:4]
-
+    '''TESTING ONLY. REMOVE FOR PRODUCTION'''
+    com_port = 'COM8'
+    '''****************'''
     #Ensure a com port was selected
     if com_port == '':
-        print_to_terminal("No COM port selected!")
+        print_to_terminal("No COM port selected!\n")
         return -1
     
     # Get user assigned com port settings
@@ -174,11 +212,11 @@ def open_com_port():
 
     #Check return value
     if status < 0:
-        print_to_terminal(com_port + " is busy. Unable to open")
+        print_to_terminal(com_port + " is busy. Unable to open\n")
         return -1
 
     # Print COM port opened successfully.
-    print_to_terminal(com_port + " opened successfully")
+    print_to_terminal(com_port + " opened successfully\n")
 
     # Disable open com port button
     open_com_button['state'] = 'disabled'
@@ -198,8 +236,14 @@ def open_com_port():
     # Set current com port variable in com settings struct
     settings_ui.set_com_port(com_port)
 
+    # Create an event variable to sync termination of the main loop and receive thread
+    global g_terminate_event
+    g_terminate_event = threading.Event()
+
     # Create receive thread to print to terminal
-    threading.Thread(target=receive_thread).start()
+    global g_receive_thread
+    g_receive_thread = threading.Thread(target=receive_thread)
+    g_receive_thread.start()
 
     return com_port
 
@@ -252,6 +296,7 @@ com_ports_available = list(port_list.comports())
 # (NULL appended com port names seem to appear. Possibly due to using
 #  virtual com ports?)
 for item in com_ports_available:
+    print(item)
     if str(item)[0:5] == "NULL_":
         com_ports_available.remove(item)
 
@@ -305,6 +350,8 @@ send_message_textbox.grid(sticky=NSEW)
 send_button = ui_objects.define_button(display_frame, "Send", 'disabled',
                      send_button_pressed, 1, 1)
 send_button.grid(sticky=NSEW, padx=5, pady=5)
+# Bind Enter key to send button
+window.bind('<Return>', send_button_pressed)
 # Create a clear terminal display button
 clear_button = ui_objects.define_button(display_frame, "Clear", 'normal',
                      clear_button_pressed, 1, 0)
@@ -327,6 +374,5 @@ Main loop
 '''
 # Install window close routine
 window.protocol("WM_DELETE_WINDOW",close_window)
-
 window.mainloop()
 
