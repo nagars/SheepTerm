@@ -17,6 +17,7 @@ import threading                #Imports python threading module
 import sercomm      # custom library built to handle communication
 import settings_ui  # custom library built to manage the settings window 
 import ui_objects   # custom library built to handle common UI objects
+import csvlogger    # custom library for logging data to .csv file
 
 '''
 Function Description: Function to be called as separate thread. Receives data
@@ -32,6 +33,7 @@ def receive_thread():
 
     # Flag to track if a read timeout has occurred
     serial_timout_occurred = False
+    log_msg = ''
 
     # Maintain the thread until the terminate event flag is set
     # flag is set when the user attempts to close the window and
@@ -44,6 +46,9 @@ def receive_thread():
         if len(msg) == 0:
             serial_timout_occurred = True
             continue
+
+        # Time stamp when data was received
+        logtime = datetime.now().strftime('%H:%M:%S.%f')[:-3]
 
         # Change data format based on drop down menu selection
         match data_types_dd.get():
@@ -60,30 +65,34 @@ def receive_thread():
             
             case _:
                 return False
-
-        # Log data if required
-        curr_sercom_settings = settings_ui.get_sercomm_settings()
-        if curr_sercom_settings.logfile != None:
-            # Write to .csv file
-
-            # Append new line character
-            pass
         
         # Check if a timeout has occurred, print to new line
         if serial_timout_occurred == True:
 
             #Check if timestamp is required. Append to message
             if (timestamp_flag.get() == True):
-                print_msg = datetime.now().strftime('%H:%M:%S.%f')[:-3] + " :\t\t" + print_msg
+                print_to_terminal('\n' + logtime + " :\t\t" + print_msg)
+
+            else:
+                print_to_terminal('\n' + print_msg)
+
+            # Log data if required. Check that empty messages dont get logged
+            curr_sercom_settings = settings_ui.get_sercomm_settings()
+            if ((curr_sercom_settings.logfile != None) & (log_msg != '')):
+                # Write to .csv file
+                csvlogger.write_row_csv([logtime,log_msg])
+                log_msg = ''
 
             # Reset timeout flag
             serial_timout_occurred = False
 
-            print_to_terminal('\n' + print_msg)
-            continue
+        else:
+            
+            # Print to terminal
+            print_to_terminal(print_msg)           
+            log_msg += print_msg
+            
 
-        # Print to terminal
-        print_to_terminal(print_msg)
 
     return True
 
@@ -121,13 +130,10 @@ Return: void
 def close_window():
     
     # Check if the receive thread was started
-    try:
-        g_receive_thread
-
+    try: g_receive_thread
     # If not, terminate program
     except NameError:
         pass
-
     # Terminate receive thread, then terminate program
     else:
         # Set terminate flag for receive thread
@@ -143,6 +149,7 @@ def close_window():
     sercomm.close_serial_com()
 
     # Close file pointer for logger
+    csvlogger.close_csv()
 
     # Terminate window
     window.destroy()
@@ -175,7 +182,7 @@ Parameters: void
 
 Return: void
 '''
-def send_button_pressed():
+def send_button_pressed(event=None):
 
     # Read message to transmit from textbox
     transmit_msg = send_message_textbox.get()

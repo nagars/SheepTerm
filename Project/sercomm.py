@@ -54,6 +54,12 @@ Return: Nummber of bytes written to serial port
 '''
 def write_serial_com(data):
     
+    # Check if g_serial_port is defined
+    # Implying that open_serial_com was called
+    try: g_serial_port
+    except NameError: 
+       return False
+
     return g_serial_port.write(data.encode())
 
 '''
@@ -66,6 +72,12 @@ Return: Bytes read from serial port
 '''
 def read_serial_com(size=1):
     
+    # Check if g_serial_port is defined
+    # Implying that open_serial_com was called
+    try: g_serial_port
+    except NameError: 
+       return False
+
     return g_serial_port.read(size)
 
 '''

@@ -1,6 +1,5 @@
 import tkinter # Import tkinter library used to generate GUI
 from tkinter import * # Import tkinter modules used to generate GUI
-from tkinter.filedialog import asksaveasfile # Import tkinter file save module
 
 import serial  # Import pyserial library
 from serial.serialutil import STOPBITS_ONE_POINT_FIVE       
@@ -12,11 +11,11 @@ import math     # Import math for floats comparison
 
 from datetime import datetime   #Import system date library
 import os #Import directory manipulation library
-from tkinter import filedialog 
 
 ''' Custom Modules'''
 import ui_objects   # custom library built to handle common UI objects
 import sercomm  # custom library for sercomm api
+import csvlogger    # custom library for logging data to .csv file
 
 '''
 Structure and Enumerations
@@ -49,34 +48,35 @@ class com_struct:
             and math.isclose(objA.stopbits,objB.stopbits) \
             and math.isclose(objA.readtimeout,objB.readtimeout) \
             and objA.logfile == objB.logfile
-            #and objA.stopbits == objB.stopbits \
-            #and objA.readtimeout == objB.readtimeout \
 
-'''
-    # Copy one object to another
-    def duplicate(self):
-        dest = com_struct()
-        dest.port = copy.deepcopy(self.port)
-        dest.baud = int(copy.deepcopy(self.baud))
-        dest.bytesize = int(copy.deepcopy(self.bytesize))
-        dest.paritybits = copy.deepcopy(self.paritybits)
-        dest.stopbits = int(copy.deepcopy(self.stopbits))
-        dest.readtimeout = float(copy.deepcopy(self.readtimeout))
-        dest.logfile = copy.deepcopy(self.logfile)
 
-        return dest
-'''
 g_com_settings = com_struct() # Object of class to store comm settings
 
 '''
 Functions
 '''
+
+'''
+Function Description: Setter function for port in global com_struct
+
+Parameters: port - Name of com port
+
+Return: void
+'''
 def set_com_port(port):
     g_com_settings.port = copy.copy(port)
     return
 
+'''
+Function Description: Getter for global serial com settings
+
+Parameters: void
+
+Return: copy of global com struct
+'''
 def get_sercomm_settings():
-    return copy.deepcopy(g_com_settings)
+    #return copy.deepcopy(g_com_settings)
+    return (g_com_settings)
 
 '''
 Function Description: Generates a new window designed to set various
@@ -217,7 +217,7 @@ Paramters: void
 Return: True on success / False on Failure
 '''
 
-def confirm_settings():
+def confirm_settings(event=None):
 
     global g_com_settings
     # Tracks previously set port settings
@@ -228,17 +228,20 @@ def confirm_settings():
     if(g_enable_logging_flag == True):
 
         # Define the name of the log file as "log"_"Date"_"Time"_.csv
-        filename = "log_" + datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + "_.csv"
+        filename = "log_" + datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + ".csv"
 
-        com_settings_new.logfile = asksaveasfile(initialfile = filename,
-        defaultextension=".csv", filetypes=[(".csv", "*.csv")])
+        com_settings_new.logfile = csvlogger.create_csv(filename)
 
         # Check if cancel button was clicked by user in savfileas dialog
         if com_settings_new.logfile == None:
             return False
+        
+        # Write the header fields in the log file
+        csvlogger.write_row_csv(['Timestamp','Received Data'])
 
     elif(g_enable_logging_flag == False):
-       com_settings_new.logfile = None
+       pass
+       #com_settings_new.logfile = None
 
     # Modify parity bit option to format required by function
     match g_paritybits_dd.get():
