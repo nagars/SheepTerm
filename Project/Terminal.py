@@ -435,9 +435,11 @@ Define Terminal frame UI objects
 # Create a scroll text box for the terminal
 terminal_box = ui_objects.define_scroll_textbox(display_frame, 50, 20, 0, 0)
 terminal_box.grid(sticky=NSEW)
+terminal_box.configure(font=('Times New Roman',13))
 # Create a text box to get the transmit message from user
 send_message_textbox = ui_objects.define_entry_textbox(display_frame, 47, 'disabled', 0, 1)
 send_message_textbox.grid(sticky=NSEW)
+send_message_textbox.configure(font=('Times New Roman',13))
 # Create a button to send data on selected port
 send_button = ui_objects.define_button(display_frame, "Send", 'disabled',
                      send_button_pressed, 1, 1)
