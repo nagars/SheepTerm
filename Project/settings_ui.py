@@ -8,11 +8,13 @@ import serial.tools.list_ports as port_list # Import function to list serial por
 from serial import SerialException  # Import pyserial exception handling
 
 import copy     # Import copy module for shallow copy of objects
+import math     # Import math for floats comparison
 
 from datetime import datetime   #Import system date library
 import os #Import directory manipulation library
 from tkinter import filedialog 
 
+''' Custom Modules'''
 import ui_objects   # custom library built to handle common UI objects
 import sercomm  # custom library for sercomm api
 
@@ -26,11 +28,11 @@ Class used as struct to store comm settings
 class com_struct:
     def __init__(self):
         self.port = None
-        self.baud = 9600
-        self.bytesize = 8
+        self.baud : int = 9600
+        self.bytesize : int = 8
         self.paritybits = serial.PARITY_NONE
-        self.stopbits = 1
-        self.readtimeout = 1
+        self.stopbits : float = 1.0
+        self.readtimeout : float = 1.0
         self.logfile = None   # Used to store a file object
     
     # To perform a comparison of 2 objects of this class, I
@@ -44,29 +46,45 @@ class com_struct:
             and objA.baud == objB.baud \
             and objA.bytesize == objB.bytesize \
             and objA.paritybits == objB.paritybits \
-            and objA.stopbits == objB.stopbits \
-            and objA.readtimeout == objB.readtimeout \
+            and math.isclose(objA.stopbits,objB.stopbits) \
+            and math.isclose(objA.readtimeout,objB.readtimeout) \
             and objA.logfile == objB.logfile
+            #and objA.stopbits == objB.stopbits \
+            #and objA.readtimeout == objB.readtimeout \
 
+'''
+    # Copy one object to another
+    def duplicate(self):
+        dest = com_struct()
+        dest.port = copy.deepcopy(self.port)
+        dest.baud = int(copy.deepcopy(self.baud))
+        dest.bytesize = int(copy.deepcopy(self.bytesize))
+        dest.paritybits = copy.deepcopy(self.paritybits)
+        dest.stopbits = int(copy.deepcopy(self.stopbits))
+        dest.readtimeout = float(copy.deepcopy(self.readtimeout))
+        dest.logfile = copy.deepcopy(self.logfile)
+
+        return dest
+'''
 g_com_settings = com_struct() # Object of class to store comm settings
 
 '''
 Functions
 '''
 def set_com_port(port):
-    g_com_settings.port = port
+    g_com_settings.port = copy.copy(port)
     return
 
 def get_sercomm_settings():
-    return copy.copy(g_com_settings)
+    return copy.deepcopy(g_com_settings)
 
 '''
 Function Description: Generates a new window designed to set various
-settings for communication and logging
+settings for communication and logging. 
 
 Parameters: void 
 
-Return: void
+Return: Identifier for tkinter settings window
 '''
 def define_sercomm_settings_window():
 
@@ -164,7 +182,7 @@ def define_sercomm_settings_window():
 
     global g_enable_logging_flag
     # Enable logging disabled by default
-    g_enable_logging_flag = FALSE
+    g_enable_logging_flag = False
     # Define an enable logging checkbox
     enable_logging_checkbox = ui_objects.define_checkbox(config_frame0, "Enable Logging",
                         "normal", g_enable_logging_flag, enable_logging, 0, 5)
@@ -185,18 +203,29 @@ def define_sercomm_settings_window():
     if g_com_settings.logfile != None:
         enable_logging_checkbox['state'] = "disabled"
 
-    return
+    return g_settings_window
+
+'''
+Function Description: Accepts new settings, checks
+if they are valid. Ensures the new settings are different from the 
+previous settings before closing adn opening serial port
+with new settings. If the enable log checkbox is selected,
+calls a savefile dialog
+
+Paramters: void
+
+Return: True on success / False on Failure
+'''
 
 def confirm_settings():
 
     global g_com_settings
     # Tracks previously set port settings
-    com_settings_new = com_struct
-    com_settings_new = copy.deepcopy(g_com_settings)
+    com_settings_new = copy.copy(g_com_settings)
 
     # Ensure log file checkbox is selected and appropriate directory
     # has been chosen by user
-    if(g_enable_logging_flag == TRUE):
+    if(g_enable_logging_flag == True):
 
         # Define the name of the log file as "log"_"Date"_"Time"_.csv
         filename = "log_" + datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + "_.csv"
@@ -206,9 +235,9 @@ def confirm_settings():
 
         # Check if cancel button was clicked by user in savfileas dialog
         if com_settings_new.logfile == None:
-            return -1
+            return False
 
-    elif(g_enable_logging_flag == FALSE):
+    elif(g_enable_logging_flag == False):
        com_settings_new.logfile = None
 
     # Modify parity bit option to format required by function
@@ -224,53 +253,68 @@ def confirm_settings():
         case "Space":
             parity_bit = serial.PARITY_SPACE
         case _:
-            return -1
-
-    # Ensure timeout value is a valid numeric value
-    if (g_timeout_textbox.get().isnumeric() == FALSE):
-        g_settings_window.bell()
-        return -1
+            return False
 
     # Set value in global struct
-    com_settings_new.baud = g_baud_rate_dd.get()
-    com_settings_new.bytesize = g_bytesize_dd.get()
-    com_settings_new.stopbits =  g_stopbits_dd.get()
+    com_settings_new.baud = int(g_baud_rate_dd.get())
+    com_settings_new.bytesize = int(g_bytesize_dd.get())
+    com_settings_new.stopbits =  float(g_stopbits_dd.get())
     com_settings_new.paritybits = parity_bit
-    com_settings_new.readtimeout = g_timeout_textbox.get()
+    # Ensure that the timeout value entered by the user is a valid number
+    try:
+        com_settings_new.readtimeout = float(g_timeout_textbox.get())
+    except ValueError:
+        g_settings_window.bell()
+        return False
+
+    # Ensure timeout is not negative
+    if(com_settings_new.readtimeout < 0):
+        g_settings_window.bell()
+        return False
 
     # Only close and reopen port if given settings have changed
     # since previous port settings
     if(com_settings_new != g_com_settings):
 
-        sercomm.close_serial_com()
+        status = sercomm.close_serial_com()
+        # Check if serial port was closed
+        if status  == False:
+            g_settings_window.bell()
+            return False
 
-        status = sercomm.open_serial_com(g_com_settings.port, g_com_settings.baud, 
-        g_com_settings.bytesize, g_com_settings.readtimeout, g_com_settings.stopbits, 
-        g_com_settings.paritybits)
+        status = sercomm.open_serial_com(com_settings_new.port, com_settings_new.baud, 
+        com_settings_new.bytesize, com_settings_new.readtimeout, com_settings_new.stopbits, 
+        com_settings_new.paritybits)
 
         # If opening the serial com port failed
-
-        if status < 0:
+        if status < False:
             g_settings_window.bell()
-            return -1
+            return False
 
         # Update global comm settings
-        g_com_settings = com_settings_new
+        g_com_settings = copy.copy(com_settings_new)
 
     # close window
     g_settings_window.destroy()
 
-    return 0
+    return True
 
+'''
+Function Description: Toggles the enable logging flag.
+Called when action on logging checkbox by user
 
+Parameters: void
+
+Return: void
+'''
 def enable_logging():
     global g_enable_logging_flag    #Define scope of variable
     #Python seems to think its a local for some reason otherwise
     
     # Enable log file textbox if checkbox is set
-    if g_enable_logging_flag == TRUE:
+    if g_enable_logging_flag == True:
 
-        g_enable_logging_flag = FALSE
+        g_enable_logging_flag = False
     else:    
-        g_enable_logging_flag = TRUE
+        g_enable_logging_flag = True
 

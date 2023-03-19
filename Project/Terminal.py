@@ -21,25 +21,28 @@ import ui_objects   # custom library built to handle common UI objects
 '''
 Function Description: Function to be called as separate thread. Receives data
 from serial port, logs if required, converts to selected display format
-and prints to terminal
+and prints to terminal. Checks if a read timeout has occurred and 
+appends new lines + timestamp if required.
 
 Parameters: void
 
-Return: void
+Return: True - Successful / False - Failure
 '''
 def receive_thread():
 
-    serial_timout_occurred = FALSE
+    # Flag to track if a read timeout has occurred
+    serial_timout_occurred = False
+
     # Maintain the thread until the terminate event flag is set
     # flag is set when the user attempts to close the window and
-    # terminate the program
+    # terminate the program or to change settings of the serial port
     while not g_terminate_event.is_set():
         # Get data from serial port
         # Convert to string from bytes
         msg = (sercomm.read_serial_com()).decode("UTF-8")
         # If length of msg is 0, a timeout has occurred with no data received
         if len(msg) == 0:
-            serial_timout_occurred = TRUE
+            serial_timout_occurred = True
             continue
 
         # Change data format based on drop down menu selection
@@ -56,7 +59,7 @@ def receive_thread():
                     print_msg = str(hex(ord(i))[2:]) + ' '
             
             case _:
-                return -1
+                return False
 
         # Log data if required
         curr_sercom_settings = settings_ui.get_sercomm_settings()
@@ -66,14 +69,15 @@ def receive_thread():
             # Append new line character
             pass
         
-        # Check if a timeout has occurred
-        if serial_timout_occurred == TRUE:
+        # Check if a timeout has occurred, print to new line
+        if serial_timout_occurred == True:
 
             #Check if timestamp is required. Append to message
-            if (timestamp_flag.get() == TRUE):
+            if (timestamp_flag.get() == True):
                 print_msg = datetime.now().strftime('%H:%M:%S.%f')[:-3] + " :\t\t" + print_msg
 
-            serial_timout_occurred = FALSE
+            # Reset timeout flag
+            serial_timout_occurred = False
 
             print_to_terminal('\n' + print_msg)
             continue
@@ -81,7 +85,7 @@ def receive_thread():
         # Print to terminal
         print_to_terminal(print_msg)
 
-    return
+    return True
 
 '''
 Function Description: Prints string to globally defined scroll terminal object
@@ -106,7 +110,9 @@ def print_to_terminal(msg):
 
 
 '''
-Function Description: Closes come port and program.
+Function Description: Closes come port, file pointer
+to log file (If open) and program.
+Ensures recieve_thread terminate gracefully
 
 Parameters: void
 
@@ -118,12 +124,17 @@ def close_window():
     try:
         g_receive_thread
 
+    # If not, terminate program
     except NameError:
         pass
 
+    # Terminate receive thread, then terminate program
     else:
         # Set terminate flag for receive thread
         g_terminate_event.set()
+
+        # Cancel any pending read
+        sercomm.abort_serial_read()
 
         # wait till receive thread is terminated
         g_receive_thread.join()
@@ -158,7 +169,7 @@ def clear_button_pressed():
 
 '''
 Function Description: Transmits data in transmit text box
-to com port
+to com port. Clears the send text box
 
 Parameters: void 
 
@@ -179,16 +190,22 @@ def send_button_pressed():
     
     # Transmit
     sercomm.write_serial_com(transmit_msg)
+
+    # Delete all text in display
+    send_message_textbox.delete("0",END)
+
     return
 
 
 '''
 Function Description: Opens selected com port
-from drop down menu
+from drop down menu. Creates receive thread if
+com port opened successfully. Modifies UI to
+represent opened com port.
 
 Parameters: void 
 
-Return: com port on success
+Return: com port name on Success / False on Failure
 '''
 def open_com_port():
 
@@ -200,9 +217,9 @@ def open_com_port():
     #Ensure a com port was selected
     if com_port == '':
         print_to_terminal("No COM port selected!\n")
-        return -1
+        return False
     
-    # Get user assigned com port settings
+    # Get a copy of com port settings
     sercomm_settings = settings_ui.get_sercomm_settings()
 
     # Open port
@@ -211,9 +228,9 @@ def open_com_port():
                                         sercomm_settings.stopbits, sercomm_settings.paritybits)
 
     #Check return value
-    if status < 0:
+    if status == False:
         print_to_terminal(com_port + " is busy. Unable to open\n")
-        return -1
+        return False
 
     # Print COM port opened successfully.
     print_to_terminal(com_port + " opened successfully\n")
@@ -246,6 +263,74 @@ def open_com_port():
     g_receive_thread.start()
 
     return com_port
+
+'''
+Function Description: Terminates the receive thread and calls
+function to open the serial settings window. Waits for settings 
+window to close, checks if serial port is open and creates a new
+receive thread. If not open, disables operations until same or
+another port is opened by the user.
+
+Parameters: void
+
+Return: True on Success / False on Failure
+'''
+def open_settings_window():
+
+    # Terminate receive thread 
+    # to prevent a read operation while
+    # the user closes and reopens the 
+    # serial port with new settings
+
+    # Set terminate flag for receive thread
+    global g_terminate_event
+    g_terminate_event.set()
+
+    # Abort any read operation
+    sercomm.abort_serial_read()
+
+    # Wait till receive thread is terminated
+    global g_receive_thread
+    g_receive_thread.join()
+
+    # Call open settings window function
+    settings_window = settings_ui.define_sercomm_settings_window()
+    
+    # Wait for the settings window to close
+    window.wait_window(settings_window)
+
+    # Ensure serial port is open successfully
+    if sercomm.check_serial_port_status() == True:
+
+        # Once settings are confirmed, 
+        # Clear terminate_event flag and start receive thread again
+        g_terminate_event.clear()
+
+        g_receive_thread = threading.Thread(target=receive_thread)
+        g_receive_thread.start()
+
+    else:
+        print_to_terminal("Port is busy. Unable to open\n")
+
+        # Return UI to original state so user can retry
+        # opening the port or select a new port
+
+        # Enable open com port button
+        open_com_button['state'] = 'normal'
+
+        # Disable send message textbox
+        send_message_textbox['state'] = 'disabled'
+
+        # Disable send message button
+        send_button['state'] = 'disabled'
+
+        # Disable settings button
+        settings_button['state'] = 'disabled'
+
+        return False
+
+    return True
+    
 
 
 '''
@@ -307,7 +392,7 @@ open_com_button = ui_objects.define_button(com_frame, "Open Port", 'normal',
                                 open_com_port, 2, 0)
 # Define a settings button for sercomm settings
 settings_button = ui_objects.define_button(com_frame, "Settings", 'disabled',
-                                settings_ui.define_sercomm_settings_window, 3, 0)
+                                open_settings_window, 3, 0)
 
 
 '''
