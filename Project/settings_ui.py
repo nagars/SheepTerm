@@ -1,4 +1,3 @@
-import tkinter # Import tkinter library used to generate GUI
 from tkinter import * # Import tkinter modules used to generate GUI
 
 import serial  # Import pyserial library
@@ -10,7 +9,6 @@ import copy     # Import copy module for shallow copy of objects
 import math     # Import math for floats comparison
 
 from datetime import datetime   #Import system date library
-import os #Import directory manipulation library
 
 ''' Custom Modules'''
 import ui_objects   # custom library built to handle common UI objects

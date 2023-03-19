@@ -1,16 +1,11 @@
 '''Generic Modules'''
 import tkinter                       # Import tkinter library used to generate GUI
 from tkinter import *                # Import tkinter modules used to generate GUI
-from tkinter import scrolledtext     # Import tkinter module for scroll text box
-from tkinter import ttk
 
-import serial  # Import pyserial library
 from serial.serialutil import STOPBITS_ONE_POINT_FIVE       
 import serial.tools.list_ports as port_list # Import function to list serial ports.
-from serial import SerialException          # Import pyserial exception handling
 
 from datetime import datetime   #Import system date library
-
 import threading                #Imports python threading module
 
 '''Custom Modules'''
@@ -218,9 +213,11 @@ def open_com_port():
 
     # Extract com port value
     com_port = com_ports_menu.get()[0:4]
-    '''TESTING ONLY. REMOVE FOR PRODUCTION'''
-    com_port = 'COM8'
-    '''****************'''
+
+    #'''TESTING ONLY. REMOVE FOR PRODUCTION'''
+    #com_port = 'COM8'
+    #'''****************'''
+    
     #Ensure a com port was selected
     if com_port == '':
         print_to_terminal("No COM port selected!\n")
