@@ -22,7 +22,7 @@ Structure and Enumerations
 '''
 Class used as struct to store comm settings
 '''
-class com_struct:
+class settings_struct:
     def __init__(self):
         self.port = None
         self.baud : int = 9600
@@ -35,7 +35,7 @@ class com_struct:
     # To perform a comparison of 2 objects of this class, I
     # chose to over ride the comparison operator
     def __eq__(objA, objB): 
-        if not isinstance(objB, com_struct):
+        if not isinstance(objB, settings_struct):
             # Don't attempt to compare against unrelated types
             raise Exception ("Objects to be compared are not the same class")
 
@@ -48,14 +48,14 @@ class com_struct:
             and objA.logfile == objB.logfile
 
 
-g_com_settings = com_struct() # Object of class to store comm settings
+g_com_settings = settings_struct() # Object of class to store comm settings
 
 '''
 Functions
 '''
 
 '''
-Function Description: Setter function for port in global com_struct
+Function Description: Setter function for port in global settings_struct
 
 Parameters: port - Name of com port
 
@@ -73,8 +73,7 @@ Parameters: void
 Return: copy of global com struct
 '''
 def get_sercomm_settings():
-    #return copy.deepcopy(g_com_settings)
-    return (g_com_settings)
+    return g_com_settings
 
 '''
 Function Description: Generates a new window designed to set various
@@ -236,10 +235,6 @@ def confirm_settings(event=None):
         
         # Write the header fields in the log file
         csvlogger.write_row_csv(['Timestamp','Received Data'])
-
-    elif(g_enable_logging_flag == False):
-       pass
-       #com_settings_new.logfile = None
 
     # Modify parity bit option to format required by function
     match g_paritybits_dd.get():

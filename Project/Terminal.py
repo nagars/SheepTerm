@@ -211,18 +211,15 @@ Return: com port name on Success / False on Failure
 '''
 def open_com_port():
 
-    # Extract com port value
-    com_port = com_ports_menu.get()[0:4]
-
-    #'''TESTING ONLY. REMOVE FOR PRODUCTION'''
-    #com_port = 'COM8'
-    #'''****************'''
-    
-    #Ensure a com port was selected
-    if com_port == '':
+    # Ensure a com port was selected
+    if com_ports_menu.get() == '':
         print_to_terminal("No COM port selected!\n")
         return False
     
+    # Extract com port name from drop down string
+    com_port = com_ports_menu.get().split()[0]
+    #com_port = "COM8"
+
     # Get a copy of com port settings
     sercomm_settings = settings_ui.get_sercomm_settings()
 
