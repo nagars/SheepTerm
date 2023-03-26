@@ -77,7 +77,7 @@ Note: Refer to https://ttkbootstrap.readthedocs.io/en/latest/styleguide/button/
 
 Return: button object
 '''
-def define_button(container, position_y, position_x, text, function_call, default_state = 'normal', theme = 'default'):
+def define_button(container, position_y, position_x, text = '', function_call = None, default_state = 'normal', theme = 'default'):
     
     button = ttk_b.Button(container, text=text, command=function_call, state=default_state, bootstyle=theme)
     button.grid(column=position_y, row=position_x, padx=2, pady=2)
@@ -98,7 +98,7 @@ Note: Refer to https://ttkbootstrap.readthedocs.io/en/latest/styleguide/label/
 
 Return: button object
 '''
-def define_label(container, position_y, position_x, text, theme = 'normal'):
+def define_label(container, position_y, position_x, text = '', theme = 'normal'):
 
     label = ttk_b.Label(container, text=text, bootstyle=theme,)
     label.grid(column=position_y, row=position_x, padx=2, pady=2)
@@ -110,19 +110,23 @@ def define_label(container, position_y, position_x, text, theme = 'normal'):
 Function Description: Define a checkbox UI object
 
 Parameters: container - Main window object
-test - label text
-status_variable - checked / unchecked
 position_y - columnm index for frame position
 position_x - row index for frame position
+text - label text
+status_variable - checked / unchecked
+function_call - function to call on change of state
 default_state - active / inactive
+theme - colour scheme
 
 Note: Refer to https://ttkbootstrap.readthedocs.io/en/latest/styleguide/checkbutton/
 
 Return: button object
 '''
-def define_checkbox(container, position_y, position_x, text, status_variable, function_call, default_state = 'normal', theme = 'default'):
+def define_checkbox(container, position_y, position_x, text = '', status_variable = None, function_call = None, 
+                    default_state = 'normal', theme = 'default'):
 
-    checkbox = ttk_b.Checkbutton(container, text=text, variable=status_variable, command=function_call, state=default_state, bootstyle=theme)
+    checkbox = ttk_b.Checkbutton(container, text=text, variable=status_variable, command=function_call, 
+                                 state=default_state, bootstyle=theme)
     checkbox.grid(column=position_y, row=position_x, padx=2, pady=2)
 
     return checkbox
@@ -168,3 +172,29 @@ def define_entry_textbox(container, position_y, position_x, width, state = 'norm
     entrybox.configure(font=("Times New Roman", 10))
 
     return entrybox
+
+
+'''
+Function Description: Define a radio button UI object
+
+Parameters: container - Main window object
+position_y - columnm index for frame position
+position_x - row index for frame position
+text - label text
+status_variable - checked / unchecked
+function_call - function to call when change of state occurs
+default_state - active / inactive
+theme - colour scheme to use
+
+Note: Refer to https://ttkbootstrap.readthedocs.io/en/latest/styleguide/radiobutton/#radio-default
+
+Return: button object
+'''
+def define_radiobutton(container, position_y, position_x, text = '', status_variable = None, function_call = None, 
+                       default_state = 'normal', theme = 'default'):
+    
+    radiobutton = ttk_b.Radiobutton(container, text=text, variable=status_variable, command=function_call, 
+                                    state=default_state, bootstyle=theme)
+    radiobutton.grid(column=position_y, row=position_x, padx=2, pady=2)
+
+    return radiobutton

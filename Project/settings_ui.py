@@ -246,7 +246,7 @@ def confirm_settings(event=None):
             return False
         
         # Write the header fields in the log file
-        csvlogger.write_row_csv(['Timestamp','Received Data'])
+        csvlogger.write_row_csv(['Timestamp','RX/TX','Data'])
 
     # Modify parity bit option to format required by function
     match g_paritybits_dd.get():

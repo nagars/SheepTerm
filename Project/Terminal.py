@@ -20,6 +20,27 @@ Global Variables
 global g_terminate_event    # Object is used to sync receive thread with main loop
 global g_receive_thread     # Object is assigned the receive thread handle on initialisation
 
+
+def update_msg_datatype(msg):
+    print_msg = ''
+    # Change data format based on drop down menu selection
+    match data_types_dd.get():
+        case "STRING":
+            print_msg = msg    
+            
+        case "ASCII":
+            for i in msg:
+                print_msg += str(ord(i)) + ' '
+           
+        case "HEX":
+            for i in msg:
+                print_msg += str(hex(ord(i))[2:]) + ' '
+            
+        case _:
+            return False
+    
+    return print_msg
+
 '''
 Function Description: Function to be called as separate thread. Receives data
 from serial port, logs if required, converts to selected display format
@@ -52,37 +73,25 @@ def receive_thread():
         # Time stamp when data was received
         logtime = datetime.now().strftime('%H:%M:%S.%f')[:-3]
 
-        # Change data format based on drop down menu selection
-        match data_types_dd.get():
-            case "STRING":
-                print_msg = msg    
-            
-            case "ASCII":
-                for i in msg:
-                    print_msg = str(ord(i)) + ' '
-           
-            case "HEX":
-                for i in msg:
-                    print_msg = str(hex(ord(i))[2:]) + ' '
-            
-            case _:
-                return False
+        # Update message data type for printing based on drop down
+        msg = update_msg_datatype(msg)
         
         # Check if a timeout has occurred, print to new line
         if serial_timout_occurred == True:
 
             #Check if timestamp is required. Append to message
             if (timestamp_flag.get() == True):
-                print_to_terminal('\n' + logtime + " :\t\t" + print_msg)
+                print_to_terminal('\n' + logtime + " :\t\tRX: " + msg)
 
             else:
-                print_to_terminal('\n' + print_msg)
+                print_to_terminal('\n' + "RX: " + msg)
 
             # Log data if required. Check that empty messages dont get logged
             curr_sercom_settings = settings_ui.get_sercomm_settings()
             if ((curr_sercom_settings.logfile != None) & (log_msg != '')):
-                # Write to .csv file
-                csvlogger.write_row_csv([logtime,log_msg])
+                # Write to file
+                csvlogger.write_row_csv([logtime,"RX",log_msg])    
+
                 # Reset log_msg
                 log_msg = ''
 
@@ -93,14 +102,15 @@ def receive_thread():
             
             # Print to terminal. If no timeout occurs, then
             # messages should be written to same line
-            print_to_terminal(print_msg)           
-            log_msg += print_msg
+            print_to_terminal(msg)           
+            log_msg += msg
             
 
     return True
 
 '''
 Function Description: Prints string to globally defined scroll terminal object
+Auto scrolls to end of the box if user scrolls down. Else stays at same position.
 
 Parameters: msg - string to print to terminal 
 
@@ -113,8 +123,12 @@ def print_to_terminal(msg):
 
     terminal_box.insert(END, msg)
     
-    # Reset position index to have messages scroll down
-    terminal_box.yview = END
+    # Check if user is looking at previous printed data
+    # If not, autoscroll to latest data, else maintain 
+    # current y position
+    if terminal_box.yview()[1] >= 0.9:  
+        # Reset position index to have messages scroll down
+        terminal_box.see('end')
 
     # Disable editing of text box
     terminal_box.config(state="disabled")
@@ -198,9 +212,38 @@ def send_button_pressed(event=None):
     # If Next line check box is selected, append \n
     if include_new_line_flag.get() == True:
         transmit_msg += '\n'
+
+    # Check is msg is empty
+    if transmit_msg == '':
+        return False
     
     # Transmit
     sercomm.write_serial_com(transmit_msg)
+
+    # If echo_enable flag is set
+    if echo_enable_flag.get() == True:
+        
+        # Time stamp when data was received
+        logtime = datetime.now().strftime('%H:%M:%S.%f')[:-3]
+
+        # Update message data type for printing based on drop down
+        print_msg = update_msg_datatype(transmit_msg)
+
+        #Check if timestamp is required. Append to message
+        if (timestamp_flag.get() == True):
+            print_to_terminal('\n' + logtime + " :\t\tTX: " + print_msg)
+
+        else:
+            print_to_terminal('\n' + "TX: " + print_msg)
+
+        # Log data if required. Check that empty messages dont get logged
+        curr_sercom_settings = settings_ui.get_sercomm_settings()
+        if ((curr_sercom_settings.logfile != None) & (print_msg != '')):
+            if echo_enable_flag.get() == True:
+                csvlogger.write_row_csv([logtime,"TX",print_msg])    
+            else:
+                # Write to .csv file
+                csvlogger.write_row_csv([logtime,print_msg])
 
     # Delete all text in display
     send_message_textbox.delete("0",END)
@@ -381,6 +424,8 @@ timestamp_flag = tkinter.BooleanVar()
 include_new_line_flag = tkinter.BooleanVar()
 # Tracks if user enabled CR to be appended to data sent
 include_carriage_return_flag = tkinter.BooleanVar()
+# Tracks if user wants to echo the transmitted message on terminal
+echo_enable_flag = tkinter.BooleanVar()
 
 
 '''
@@ -428,10 +473,15 @@ data_types_dd.current(0)
 include_new_line_checkbox = ui_objects.define_checkbox(config_frame, 0, 3, "Include New Line Character",
                                         include_new_line_flag, None, "normal", 'round-toggle')
 include_new_line_checkbox.grid(sticky=W)
-#Create an include next line character checkbox
+#Create an include carriage return character checkbox
 include_carriage_return_checkbox = ui_objects.define_checkbox(config_frame, 0, 4, "Include Carriage Return Character",
                                         include_carriage_return_flag, None, "normal", 'round-toggle')
 include_carriage_return_checkbox.grid(sticky=W)
+#Create a echo checkbox
+echo_checkbox = ui_objects.define_checkbox(config_frame, 0, 5, "Enable Echo",
+                                        echo_enable_flag, None, "normal", 'round-toggle')
+echo_checkbox.grid(sticky=W)
+
 
 
 '''
