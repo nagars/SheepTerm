@@ -5,8 +5,8 @@ from tkinter import *                # Import tkinter modules used to generate G
 from serial.serialutil import STOPBITS_ONE_POINT_FIVE       
 import serial.tools.list_ports as port_list # Import function to list serial ports.
 
-from datetime import datetime   #Import system date library
-import threading                #Imports python threading module
+from datetime import datetime   # Import system date library
+import threading                # Imports python threading module
 
 '''Custom Modules'''
 import sercomm      # custom library built to handle communication
@@ -21,8 +21,18 @@ global g_terminate_event    # Object is used to sync receive thread with main lo
 global g_receive_thread     # Object is assigned the receive thread handle on initialisation
 
 
+'''
+Function Description: Updates message data types based on 
+the current selected data type in drop down menu of terminal
+
+Paramete: msg - string to be converted into string of new data type
+
+Return: New message string
+'''
 def update_msg_datatype(msg):
+    
     print_msg = ''
+
     # Change data format based on drop down menu selection
     match data_types_dd.get():
         case "STRING":
@@ -40,6 +50,7 @@ def update_msg_datatype(msg):
             return False
     
     return print_msg
+
 
 '''
 Function Description: Function to be called as separate thread. Receives data
@@ -105,8 +116,8 @@ def receive_thread():
             print_to_terminal(msg)           
             log_msg += msg
             
-
     return True
+
 
 '''
 Function Description: Prints string to globally defined scroll terminal object
@@ -228,6 +239,8 @@ def send_button_pressed(event=None):
 
         # Update message data type for printing based on drop down
         print_msg = update_msg_datatype(transmit_msg)
+        # Remove the \r and \n characters when printing to terminal and logging
+        print_msg = print_msg.strip('\r\n')
 
         #Check if timestamp is required. Append to message
         if (timestamp_flag.get() == True):
@@ -264,13 +277,13 @@ Return: com port name on Success / False on Failure
 def open_com_port():
 
     # Ensure a com port was selected
-    #if com_ports_menu.get() == '':
-    #    print_to_terminal("No COM port selected!\n")
-    #    return False
+    if com_ports_menu.get() == '':
+        print_to_terminal("No COM port selected!\n")
+        return False
     
     # Extract com port name from drop down string
-    #com_port = com_ports_menu.get().split()[0]
-    com_port = "COM8"
+    com_port = com_ports_menu.get().split()[0]
+    #com_port = "COM8"
 
     # Get a copy of com port settings
     sercomm_settings = settings_ui.get_sercomm_settings()
@@ -317,6 +330,7 @@ def open_com_port():
 
     return com_port
 
+
 '''
 Function Description: Terminates the receive thread and calls
 function to open the serial settings window. Waits for settings 
@@ -352,8 +366,10 @@ def open_settings_window():
     # Wait for the settings window to close
     window.wait_window(settings_window)
 
+    # Get a copy of settings
+    settings = settings_ui.get_sercomm_settings()
     # Perform a theme change if required
-
+    window.style.theme_use(settings.term_theme)
 
     # Ensure serial port is open successfully
     if sercomm.check_serial_port_status() == True:
@@ -481,7 +497,6 @@ include_carriage_return_checkbox.grid(sticky=W)
 echo_checkbox = ui_objects.define_checkbox(config_frame, 0, 5, "Enable Echo",
                                         echo_enable_flag, None, "normal", 'round-toggle')
 echo_checkbox.grid(sticky=W)
-
 
 
 '''

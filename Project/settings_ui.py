@@ -1,18 +1,18 @@
-from tkinter import * # Import tkinter modules used to generate GUI
+from tkinter import *   # Import tkinter modules used to generate GUI
 
-import serial  # Import pyserial library
+import serial           # Import pyserial library
 from serial.serialutil import STOPBITS_ONE_POINT_FIVE       
 import serial.tools.list_ports as port_list # Import function to list serial ports.
-from serial import SerialException  # Import pyserial exception handling
+#from serial import SerialException          # Import pyserial exception handling
 
 import copy     # Import copy module for shallow copy of objects
 import math     # Import math for floats comparison
 
-from datetime import datetime   #Import system date library
+from datetime import datetime   # Import system date library
 
 ''' Custom Modules'''
 import ui_objects   # custom library built to handle common UI objects
-import sercomm  # custom library for sercomm api
+import sercomm      # custom library for sercomm api
 import csvlogger    # custom library for logging data to .csv file
 
 '''
@@ -33,8 +33,8 @@ Structure and Enumerations
 '''
 Class used as struct to store comm settings
 '''
-class settings_struct:
-    def __init__(self):
+class settings_class:
+    def __init__(self) -> None:
         self.portname = None
         self.baud : int = 9600
         self.bytesize : int = 8
@@ -42,12 +42,12 @@ class settings_struct:
         self.stopbits : float = 1.0
         self.readtimeout : float = 1.0
         self.logfile = None   # Used to store a file object for logging
-        self.term_theme = 'standard'
+        self.term_theme = 'superhero'
     
     # To perform a comparison of 2 objects of this class, I
     # chose to over ride the comparison operator
     def __eq__(objA, objB): 
-        if not isinstance(objB, settings_struct):
+        if not isinstance(objB, settings_class):
             # Don't attempt to compare against unrelated types
             raise Exception ("Objects to be compared are not the same class")
 
@@ -57,17 +57,18 @@ class settings_struct:
             and objA.paritybits == objB.paritybits \
             and math.isclose(objA.stopbits,objB.stopbits) \
             and math.isclose(objA.readtimeout,objB.readtimeout) \
-            and objA.logfile == objB.logfile
+            and objA.logfile == objB.logfile \
+            and objA.term_theme == objB.term_theme
 
 
-g_com_settings = settings_struct() # Object of class to store comm settings
+g_com_settings = settings_class() # Object of class to store comm settings
 
 '''
 Functions
 '''
 
 '''
-Function Description: Setter function for portname in global settings_struct
+Function Description: Setter function for portname in global settings_class
 
 Parameters: portname - Name of com port
 
@@ -102,7 +103,7 @@ def define_sercomm_settings_window():
     g_settings_window = Toplevel()
     g_settings_window.geometry("341x258")
     g_settings_window.resizable(width=False, height=False)
-    g_settings_window.title("Shawn's COM port settings")
+    g_settings_window.title("Sheep Settings")
 
     # Disabled access to main terminal window
     g_settings_window.grab_set()
@@ -242,7 +243,7 @@ def confirm_settings(event=None):
         com_settings_new.logfile = csvlogger.create_csv(filename)
 
         # Check if cancel button was clicked by user in savfileas dialog
-        if com_settings_new.logfile == None:
+        if com_settings_new.logfile is None:
             return False
         
         # Write the header fields in the log file

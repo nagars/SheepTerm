@@ -24,8 +24,7 @@ def create_csv(filename = 'csvlog', delim = ','):
         defaultextension=".csv", filetypes=[(".csv", "*.csv")])
 
     # Check that a file was saved successfully
-    try: g_file_obj
-    except NameError: 
+    if g_file_obj is None:
        return False
 
     # Return object to csv writer
@@ -46,7 +45,11 @@ def write_row_csv(print_list):
     # Check if g_writer_obj is defined
     # Implying that create_csv was called
     try: g_writer_obj
-    except NameError: 
+    except:
+       return False
+
+    # Check that a file was saved successfully
+    if g_file_obj is None:
        return False
 
     g_writer_obj.writerow(print_list)
@@ -61,9 +64,15 @@ Return: True on success / False on failure
 '''
 def close_csv():
     
+    # Check if g_writer_obj is defined
+    # Implying that create_csv was called
     try: g_file_obj
-    except NameError:
+    except:
         return False
+    
+    # Check that a file was saved successfully
+    if g_file_obj is None:
+       return False
     
     g_file_obj.close()
     return True
