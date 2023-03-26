@@ -16,6 +16,17 @@ import sercomm  # custom library for sercomm api
 import csvlogger    # custom library for logging data to .csv file
 
 '''
+Global Variables
+'''
+global g_settings_window        # Object to store tkinter window
+global g_baud_rate_dd           # Object to baud rate drop down menu
+global g_bytesize_dd            # Object to byte size drop down menu
+global g_paritybits_dd          # Object to parity bits drop down menu
+global g_stopbits_dd            # Object to stop bits drop down menu
+global g_timeout_textbox        # Object to timeout input text box
+global g_enable_logging_flag    # Object tracks whether logging is required
+global g_com_settings           # Object to struct containing com port settings
+'''
 Structure and Enumerations
 '''
 
@@ -24,13 +35,14 @@ Class used as struct to store comm settings
 '''
 class settings_struct:
     def __init__(self):
-        self.port = None
+        self.portname = None
         self.baud : int = 9600
         self.bytesize : int = 8
         self.paritybits = serial.PARITY_NONE
         self.stopbits : float = 1.0
         self.readtimeout : float = 1.0
-        self.logfile = None   # Used to store a file object
+        self.logfile = None   # Used to store a file object for logging
+        self.term_theme = 'standard'
     
     # To perform a comparison of 2 objects of this class, I
     # chose to over ride the comparison operator
@@ -39,7 +51,7 @@ class settings_struct:
             # Don't attempt to compare against unrelated types
             raise Exception ("Objects to be compared are not the same class")
 
-        return objA.port == objB.port \
+        return objA.portname == objB.portname \
             and objA.baud == objB.baud \
             and objA.bytesize == objB.bytesize \
             and objA.paritybits == objB.paritybits \
@@ -55,14 +67,14 @@ Functions
 '''
 
 '''
-Function Description: Setter function for port in global settings_struct
+Function Description: Setter function for portname in global settings_struct
 
-Parameters: port - Name of com port
+Parameters: portname - Name of com port
 
 Return: void
 '''
-def set_com_port(port):
-    g_com_settings.port = copy.copy(port)
+def set_com_port(portname):
+    g_com_settings.portname = copy.copy(portname)
     return
 
 '''
@@ -88,7 +100,7 @@ def define_sercomm_settings_window():
     # Create new window over the main window
     global g_settings_window
     g_settings_window = Toplevel()
-    g_settings_window.geometry("270x210")
+    g_settings_window.geometry("341x258")
     g_settings_window.resizable(width=False, height=False)
     g_settings_window.title("Shawn's COM port settings")
 
@@ -107,7 +119,7 @@ def define_sercomm_settings_window():
     # Define UI objects
 
     # Define a label for baud rates
-    baud_rate_label = ui_objects.define_label(config_frame0, "Baud Rate: ", 0, 0)
+    baud_rate_label = ui_objects.define_label(config_frame0, 0, 0, "Baud Rate: ")
     baud_rate_label.grid(sticky=W)
     # Generate list of baud rates
     bauds = [50, 75, 110, 134, 150, 200, 300, 600, 1200, 1800, 
@@ -116,31 +128,31 @@ def define_sercomm_settings_window():
                 2000000, 2500000, 3000000, 3500000, 4000000]
     # Create a drop down menu with different baud rates
     global g_baud_rate_dd 
-    g_baud_rate_dd = ui_objects.define_drop_down(config_frame0, bauds, 'readonly', 1, 0)
+    g_baud_rate_dd = ui_objects.define_drop_down(config_frame0, 1, 0, bauds, 'readonly')
     g_baud_rate_dd.grid(sticky=W)
     # Set default value (9600) of drop down menu
     g_baud_rate_dd.current(bauds.index(int(g_com_settings.baud))) 
 
     # Define a label for bytesize
-    bytesize_label = ui_objects.define_label(config_frame0, "Byte size: ", 0, 1)
+    bytesize_label = ui_objects.define_label(config_frame0, 0, 1, "Byte size: ")
     bytesize_label.grid(sticky=W)
     # Generate list of byte sizes
     bytesize = [5, 6, 7, 8]
     # Create a drop down menu with different settings
     global g_bytesize_dd
-    g_bytesize_dd = ui_objects.define_drop_down(config_frame0, bytesize, 'readonly', 1, 1)
+    g_bytesize_dd = ui_objects.define_drop_down(config_frame0, 1, 1, bytesize, 'readonly')
     g_bytesize_dd.grid(sticky=W)
     # Set default value (8 bits) of drop down menu
     g_bytesize_dd.current(bytesize.index(int(g_com_settings.bytesize)))
 
     # Define a label for parity bits
-    paritybits_label = ui_objects.define_label(config_frame0, "Parity bits: ", 0, 2)
+    paritybits_label = ui_objects.define_label(config_frame0, 0, 2, "Parity bits: ")
     paritybits_label.grid(sticky=W)
     # Generate list of parity modes
     paritybits = ["None", "Even", "Odd", "Mark", "Space"]
     # Create a drop down menu with different settings
     global g_paritybits_dd 
-    g_paritybits_dd = ui_objects.define_drop_down(config_frame0, paritybits, 'readonly', 1, 2)
+    g_paritybits_dd = ui_objects.define_drop_down(config_frame0, 1, 2, paritybits, 'readonly')
     g_paritybits_dd.grid(sticky=W)
     # Set default value (None) of drop down menu
     match g_com_settings.paritybits:
@@ -156,24 +168,24 @@ def define_sercomm_settings_window():
             g_paritybits_dd.current(paritybits.index("Space"))
 
     # Define a label for stop bits
-    stopbits_label = ui_objects.define_label(config_frame0, "Stop bits: ", 0, 3)
+    stopbits_label = ui_objects.define_label(config_frame0, 0, 3, "Stop bits: ")
     stopbits_label.grid(sticky=W)
     # Generate list of parity modes
     stopbits = [1, 1.5, 2]
     # Create a drop down menu with different settings
     global g_stopbits_dd 
-    g_stopbits_dd = ui_objects.define_drop_down(config_frame0, stopbits, 'readonly', 1, 3)
+    g_stopbits_dd = ui_objects.define_drop_down(config_frame0, 1, 3, stopbits, 'readonly')
     g_stopbits_dd.grid(sticky=W)
     # Set default value (1) of drop down menu
     g_stopbits_dd.current(stopbits.index(float(g_com_settings.stopbits)))
 
     # Define Read timeout
     # Define a label for read timeout
-    readtimeout_label = ui_objects.define_label(config_frame0, "Read timeout(s): ", 0, 4)
+    readtimeout_label = ui_objects.define_label(config_frame0, 0, 4, "Read timeout(s): ")
     readtimeout_label.grid(sticky=W)
     # Create a text box to get the transmit message from user
     global g_timeout_textbox
-    g_timeout_textbox = ui_objects.define_entry_textbox(config_frame0, 1, 'normal', 1, 4)
+    g_timeout_textbox = ui_objects.define_entry_textbox(config_frame0, 1, 4, 1, 'normal')
     g_timeout_textbox.grid(sticky=NSEW)
     g_timeout_textbox.insert(0, g_com_settings.readtimeout)
 
@@ -181,20 +193,20 @@ def define_sercomm_settings_window():
     # Enable logging disabled by default
     g_enable_logging_flag = False
     # Define an enable logging checkbox
-    enable_logging_checkbox = ui_objects.define_checkbox(config_frame0, "Enable Logging",
-                        "normal", g_enable_logging_flag, enable_logging, 0, 5)
+    enable_logging_checkbox = ui_objects.define_checkbox(config_frame0, 0, 5, "Enable Logging",
+                        g_enable_logging_flag, enable_logging, "normal", "success-round-toggle")
     enable_logging_checkbox.grid(sticky=W)
 
     # Define a set port settings button
-    confirm_button = ui_objects.define_button(config_frame1, "Confirm", 'normal',
-                                confirm_settings, 1, 0)
+    confirm_button = ui_objects.define_button(config_frame1, 1, 0, "Confirm",
+                                confirm_settings, 'normal')
     confirm_button.grid(sticky=E)
     # Bind enter key to confirm button by default
     g_settings_window.protocol("<Return>",confirm_settings)
 
     # Define a cancel button
-    cancel_button = ui_objects.define_button(config_frame1, "Cancel", 'normal',
-                                g_settings_window.destroy, 0, 0)
+    cancel_button = ui_objects.define_button(config_frame1, 0, 0, "Cancel",
+                                g_settings_window.destroy, 'normal')
     cancel_button.grid(sticky=E)
 
     if g_com_settings.logfile != None:
@@ -278,7 +290,7 @@ def confirm_settings(event=None):
             g_settings_window.bell()
             return False
 
-        status = sercomm.open_serial_com(com_settings_new.port, com_settings_new.baud, 
+        status = sercomm.open_serial_com(com_settings_new.portname, com_settings_new.baud, 
         com_settings_new.bytesize, com_settings_new.readtimeout, com_settings_new.stopbits, 
         com_settings_new.paritybits)
 

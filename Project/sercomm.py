@@ -4,6 +4,11 @@ import serial.tools.list_ports as port_list # Import function to list serial por
 from serial import SerialException  # Import pyserial exception handling
 
 '''
+Global Variables
+'''
+global g_serial_port        # Object is assigned serial port identifier
+
+'''
 Functions
 '''
 
@@ -50,15 +55,19 @@ Function Description: Writes to serial port
 
 Parameters: void
 
-Return: Nummber of bytes written to serial port
+Return: Number of bytes written to serial port/ False if serial port
+        is not initialised
 '''
 def write_serial_com(data):
     
     # Check if g_serial_port is defined
     # Implying that open_serial_com was called
-    try: g_serial_port
-    except NameError: 
-       return False
+    #try: g_serial_port
+    #except NameError: 
+    #   return False
+    
+    if(False == check_serial_port_status()):
+        return False
 
     return g_serial_port.write(data.encode())
 
@@ -74,9 +83,12 @@ def read_serial_com(size=1):
     
     # Check if g_serial_port is defined
     # Implying that open_serial_com was called
-    try: g_serial_port
-    except NameError: 
-       return False
+    #try: g_serial_port
+    #except NameError: 
+    #   return False
+
+    if(False == check_serial_port_status()):
+        return False
 
     return g_serial_port.read(size)
 
@@ -93,9 +105,12 @@ def close_serial_com():
 
     # Check if g_serial_port is defined
     # Implying that open_serial_com was called
-    try: g_serial_port
-    except NameError: 
-       return False
+    #try: g_serial_port
+    #except NameError: 
+    #   return False
+
+    if(False == check_serial_port_status()):
+        return False
 
     # Close serial port
     g_serial_port.close()
@@ -113,10 +128,13 @@ def abort_serial_read():
     
     # Check if g_serial_port is defined
     # Implying that open_serial_com was called
-    try: g_serial_port
-    except NameError: 
-       return False
+    #try: g_serial_port
+    #except NameError: 
+    #   return False
     
+    if(False == check_serial_port_status()):
+        return False
+
     g_serial_port.cancel_read()
     return
 

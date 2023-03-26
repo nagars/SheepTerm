@@ -2,20 +2,31 @@ import csv      # Import csv file to write to .csv log file
 from tkinter.filedialog import asksaveasfile # Import tkinter file save module
 
 '''
+Global Variables
+'''
+global g_file_obj       # Object is assigned a file pointer to the csv file
+global g_writer_obj     # Object is assigned a csv writer object to csv file
+
+'''
 Function Description: Triggers the save file prompt to save a
 .csv file for logging. Opens a writer object to the file.
 
-Parameters: filename - name of file to save
-            delim - .csv delimiter
+Parameters: filename - name of file to save. Defaults to 'csvlog'
+            delim - .csv delimiter. Defaults to ','
         
 Return: Writer object
 '''
-def create_csv(filename, delim = ','):
+def create_csv(filename = 'csvlog', delim = ','):
 
     # Call save file dialog and return object to file
     global g_file_obj
     g_file_obj =  asksaveasfile(initialfile = filename, mode='w+',
         defaultextension=".csv", filetypes=[(".csv", "*.csv")])
+
+    # Check that a file was saved successfully
+    try: g_file_obj
+    except NameError: 
+       return False
 
     # Return object to csv writer
     global g_writer_obj

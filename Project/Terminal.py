@@ -15,6 +15,12 @@ import ui_objects   # custom library built to handle common UI objects
 import csvlogger    # custom library for logging data to .csv file
 
 '''
+Global Variables
+'''
+global g_terminate_event    # Object is used to sync receive thread with main loop
+global g_receive_thread     # Object is assigned the receive thread handle on initialisation
+
+'''
 Function Description: Function to be called as separate thread. Receives data
 from serial port, logs if required, converts to selected display format
 and prints to terminal. Checks if a read timeout has occurred and 
@@ -28,7 +34,8 @@ def receive_thread():
 
     # Flag to track if a read timeout has occurred
     serial_timout_occurred = False
-    log_msg = ''
+    # Initialise log_msg variable
+    log_msg = ''    
 
     # Maintain the thread until the terminate event flag is set
     # flag is set when the user attempts to close the window and
@@ -76,6 +83,7 @@ def receive_thread():
             if ((curr_sercom_settings.logfile != None) & (log_msg != '')):
                 # Write to .csv file
                 csvlogger.write_row_csv([logtime,log_msg])
+                # Reset log_msg
                 log_msg = ''
 
             # Reset timeout flag
@@ -83,11 +91,11 @@ def receive_thread():
 
         else:
             
-            # Print to terminal
+            # Print to terminal. If no timeout occurs, then
+            # messages should be written to same line
             print_to_terminal(print_msg)           
             log_msg += print_msg
             
-
 
     return True
 
@@ -126,7 +134,8 @@ def close_window():
     
     # Check if the receive thread was started
     try: g_receive_thread
-    # If not, terminate program
+    # If not, directly terminate program
+    # else terminate the thread and then the program 
     except NameError:
         pass
     # Terminate receive thread, then terminate program
@@ -212,13 +221,13 @@ Return: com port name on Success / False on Failure
 def open_com_port():
 
     # Ensure a com port was selected
-    if com_ports_menu.get() == '':
-        print_to_terminal("No COM port selected!\n")
-        return False
+    #if com_ports_menu.get() == '':
+    #    print_to_terminal("No COM port selected!\n")
+    #    return False
     
     # Extract com port name from drop down string
-    com_port = com_ports_menu.get().split()[0]
-    #com_port = "COM8"
+    #com_port = com_ports_menu.get().split()[0]
+    com_port = "COM8"
 
     # Get a copy of com port settings
     sercomm_settings = settings_ui.get_sercomm_settings()
@@ -300,6 +309,9 @@ def open_settings_window():
     # Wait for the settings window to close
     window.wait_window(settings_window)
 
+    # Perform a theme change if required
+
+
     # Ensure serial port is open successfully
     if sercomm.check_serial_port_status() == True:
 
@@ -338,11 +350,11 @@ def open_settings_window():
 Frame Definitions
 '''
 # Generate GUI window
-window = Tk()
+window = ui_objects.define_window("superhero")
 # Define window size
 window.geometry('1000x500')
 # Set title for window
-window.title("Shawn's Serial Terminal")
+window.title("Sheep-Term")
 # Create Display Configure Frame for checkbox and drop down options
 config_frame = ui_objects.define_frame(window, 0, 1)
 config_frame.grid(sticky=NW)
@@ -375,7 +387,7 @@ include_carriage_return_flag = tkinter.BooleanVar()
 Define COMM frame UI objects
 '''
 # Define a label for com port to be placed near text box
-com_port_label = ui_objects.define_label(com_frame, "COM PORT", 0, 0)
+com_port_label = ui_objects.define_label(com_frame, 0, 0, "COM PORT")
 # List all the available serial ports
 com_ports_available = list(port_list.comports())
 # Remove unusable com port options
@@ -387,39 +399,38 @@ for item in com_ports_available:
         com_ports_available.remove(item)
 
 # Define the drop down menu for com ports
-com_ports_menu = ui_objects.define_drop_down(com_frame, com_ports_available, 'readonly', 1, 0)
+com_ports_menu = ui_objects.define_drop_down(com_frame, 1, 0, com_ports_available, 'readonly')
 # Define Set COM port button
-open_com_button = ui_objects.define_button(com_frame, "Open Port", 'normal',
-                                open_com_port, 2, 0)
+open_com_button = ui_objects.define_button(com_frame, 2, 0, "Open Port", open_com_port, 'normal')
 # Define a settings button for sercomm settings
-settings_button = ui_objects.define_button(com_frame, "Settings", 'disabled',
-                                open_settings_window, 3, 0)
+settings_button = ui_objects.define_button(com_frame, 3, 0, "Settings", 
+                                open_settings_window, 'disabled')
 
 
 '''
 Define config frame UI objects
 '''
 # Define a label for data type drop down
-display_type_label = ui_objects.define_label(config_frame, "Display Type", 0, 0)
+display_type_label = ui_objects.define_label(config_frame, 0, 0, "Display Type")
 display_type_label.grid(sticky=W)
 #Create a show timestamp checkbox
-timestamp_checkbox = ui_objects.define_checkbox(config_frame, "Show Timestamp", 
-                        "normal", timestamp_flag, None, 0, 2)
+timestamp_checkbox = ui_objects.define_checkbox(config_frame, 0, 2, "Show Timestamp", 
+                       timestamp_flag, None, 'normal', 'round-toggle')
 timestamp_checkbox.grid(sticky=W)
 #Generate list of data types
 data_types = ["STRING","ASCII","HEX"]
 #Create a drop down menu with different datatypes to represent on terminal
-data_types_dd = ui_objects.define_drop_down(config_frame, data_types, 'readonly',1,0)
+data_types_dd = ui_objects.define_drop_down(config_frame, 1,0, data_types, 'readonly')
 data_types_dd.grid(sticky=W)
 #Set default value of drop down menu
 data_types_dd.current(0)      
 #Create an include next line character checkbox
-include_new_line_checkbox = ui_objects.define_checkbox(config_frame, "Include New Line Character", "normal",
-                                        include_new_line_flag, None, 0, 3)
+include_new_line_checkbox = ui_objects.define_checkbox(config_frame, 0, 3, "Include New Line Character",
+                                        include_new_line_flag, None, "normal", 'round-toggle')
 include_new_line_checkbox.grid(sticky=W)
 #Create an include next line character checkbox
-include_carriage_return_checkbox = ui_objects.define_checkbox(config_frame, "Include Carriage Return Character", "normal",
-                                        include_carriage_return_flag, None, 0, 4)
+include_carriage_return_checkbox = ui_objects.define_checkbox(config_frame, 0, 4, "Include Carriage Return Character",
+                                        include_carriage_return_flag, None, "normal", 'round-toggle')
 include_carriage_return_checkbox.grid(sticky=W)
 
 
@@ -427,22 +438,21 @@ include_carriage_return_checkbox.grid(sticky=W)
 Define Terminal frame UI objects
 '''
 # Create a scroll text box for the terminal
-terminal_box = ui_objects.define_scroll_textbox(display_frame, 50, 20, 0, 0)
+terminal_box = ui_objects.define_scroll_textbox(display_frame, 0, 0, 50, 20)
 terminal_box.grid(sticky=NSEW)
 terminal_box.configure(font=('Times New Roman',13))
 # Create a text box to get the transmit message from user
-send_message_textbox = ui_objects.define_entry_textbox(display_frame, 47, 'disabled', 0, 1)
+send_message_textbox = ui_objects.define_entry_textbox(display_frame, 0, 1, 47, 'disabled')
 send_message_textbox.grid(sticky=NSEW)
 send_message_textbox.configure(font=('Times New Roman',13))
 # Create a button to send data on selected port
-send_button = ui_objects.define_button(display_frame, "Send", 'disabled',
-                     send_button_pressed, 1, 1)
+send_button = ui_objects.define_button(display_frame, 1, 1, "Send",
+                     send_button_pressed, 'disabled')
 send_button.grid(sticky=NSEW, padx=5, pady=5)
 # Bind Enter key to send button
 window.bind('<Return>', send_button_pressed)
 # Create a clear terminal display button
-clear_button = ui_objects.define_button(display_frame, "Clear", 'normal',
-                     clear_button_pressed, 1, 0)
+clear_button = ui_objects.define_button(display_frame, 1, 0, "Clear", clear_button_pressed, 'normal')
 clear_button.grid(sticky=SE, padx=5, pady=5)
 # Ensure the terminal box expands with the frame
 display_frame.columnconfigure(0, weight=1)
@@ -453,7 +463,7 @@ display_frame.rowconfigure(0, weight=1)
 Define Empty frame UI objects
 '''
 # Define an empty label to act as a spacer for the bottom 
-empty_label = ui_objects.define_label(south_boundary_frame, "", 0, 0)
+empty_label = ui_objects.define_label(south_boundary_frame, 0, 0, "")
 empty_label.grid(sticky=NSEW)
 
 
