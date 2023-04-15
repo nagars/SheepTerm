@@ -198,3 +198,9 @@ def define_radiobutton(container, position_y, position_x, text = '', status_vari
     radiobutton.grid(column=position_y, row=position_x, padx=2, pady=2)
 
     return radiobutton
+
+
+def define_notebook(container, state = 'normal', theme = 'dark'):
+    notebook = ttk_b.Notebook(container, bootstyle = theme) #, state = state)
+
+    return notebook
