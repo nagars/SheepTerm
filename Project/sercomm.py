@@ -1,6 +1,5 @@
 import serial  # Import pyserial library
 from serial.serialutil import STOPBITS_ONE_POINT_FIVE       
-import serial.tools.list_ports as port_list # Import function to list serial ports.
 from serial import SerialException  # Import pyserial exception handling
 
 '''
@@ -11,7 +10,7 @@ Functions
 Function Description: open com port to USBtoTTL converter
 with default settings unless specified otherwise
 
-Parameters: com_port - com port to open
+Parameters: com_port - com port name to open
             baud - baud rate (default 9600)
             bytes_size = size of each packet (default 8)
             timeout - wait time for new packets during reception (default 2 sec)
@@ -54,12 +53,7 @@ Return: Number of bytes written to serial port/ False if serial port
 '''
 def write_serial_com(serial_port, data):
     
-    # Check if g_serial_port is defined
-    # Implying that open_serial_com was called
-    #try: g_serial_port
-    #except NameError: 
-    #   return False
-    
+    # Check that serial port is still valid
     if(False == check_serial_port_status(serial_port)):
         return False
 
@@ -74,13 +68,8 @@ Parameters: size - Number of bytes to read. Defaults to 1 byte
 Return: Bytes read from serial port
 '''
 def read_serial_com(serial_port, size=1):
-    
-    # Check if g_serial_port is defined
-    # Implying that open_serial_com was called
-    #try: g_serial_port
-    #except NameError: 
-    #   return False
 
+    # Check that serial port is still valid
     if(False == check_serial_port_status(serial_port)):
         return False
 
@@ -97,12 +86,7 @@ Return: False if serial port is not open /
 '''
 def close_serial_com(serial_port):
 
-    # Check if g_serial_port is defined
-    # Implying that open_serial_com was called
-    #try: g_serial_port
-    #except NameError: 
-    #   return False
-
+    # Check that serial port is still valid
     if(False == check_serial_port_status(serial_port)):
         return False
 
@@ -120,12 +104,7 @@ Return: void
 '''
 def abort_serial_read(serial_port):
     
-    # Check if g_serial_port is defined
-    # Implying that open_serial_com was called
-    #try: g_serial_port
-    #except NameError: 
-    #   return False
-    
+    # Check that serial port is still valid
     if(False == check_serial_port_status(serial_port)):
         return False
 
@@ -142,10 +121,11 @@ Return: True on success / False on Failure or invalid serial
 '''
 def check_serial_port_status(serial_port):
 
-    # Check if g_serial_port is defined
+    # Check if serial_port is defined
     # Implying that open_serial_com was called
-    try: serial_port
-    except NameError: 
-       return False
+    if serial_port is None:
+        return False
     
-    return serial_port.isOpen()
+    # Variable is valid
+    else:
+        return serial_port.isOpen()

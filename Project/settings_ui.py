@@ -3,7 +3,6 @@ from tkinter import *   # Import tkinter modules used to generate GUI
 import serial           # Import pyserial library
 from serial.serialutil import STOPBITS_ONE_POINT_FIVE       
 import serial.tools.list_ports as port_list # Import function to list serial ports.
-#from serial import SerialException          # Import pyserial exception handling
 
 import copy     # Import copy module for shallow copy of objects
 import math     # Import math for floats comparison
@@ -11,28 +10,35 @@ import math     # Import math for floats comparison
 from datetime import datetime   # Import system date library
 
 ''' Custom Modules'''
-import ui_objects   # custom library built to handle common UI objects
-import sercomm      # custom library for sercomm api
-import csvlogger as log   # custom library for logging data to .csv file
+import ui_objects           # custom library built to handle common UI objects
+import sercomm              # custom library for sercomm api
+import csvlogger as log     # custom library for logging data to .csv file
 
 '''
 Structure and Enumerations
 '''
+
+'''
+Class used as struct to store comm settings
+'''
 class comm_settings_class:
     def __init__(self) -> None:
-        self.portname = None
+        self.portname = None    # Port name assigned by OS
+        self.serialport = None  # Serial port handler returned by serial.open
         self.baud : int = 9600
         self.bytesize : int = 8
         self.paritybits = serial.PARITY_NONE
         self.stopbits : float = 1.0
         self.readtimeout : float = 1.0
     
+    # Overrides standard comparison operator
     def __eq__(objA, objB):
         if not isinstance(objB, comm_settings_class):
             # Don't attempt to compare against unrelated types
             raise Exception ("Objects to be compared are not the same class")
        
         return objA.portname == objB.portname \
+            and objA.serialport == objB.serialport  \
             and objA.baud == objB.baud \
             and objA.bytesize == objB.bytesize \
             and objA.paritybits == objB.paritybits \
@@ -41,22 +47,34 @@ class comm_settings_class:
 
 
 '''
-Class used as struct to store comm settings
+Class for the settings window and associated functionality
 '''
-class settings_window_class(comm_settings_class):
-    def __init__(self) -> None:
+class settings_window_class:
+    def __init__(self, tabname) -> None:
 
+        '''
+        Public Objects
+        '''
         self.com_settings = comm_settings_class()   # Instance of comm settings struct
-        self.logger = log.csvlogger_class()
-
+        self.logger = log.csvlogger_class()         # Instance of csv logger
         self.window = None
+        
+        '''
+        Private Objects
+        '''
+        self.__tab_name = tabname         # Tracks the name of the tab that calls this
         self.__baud_rate_dd = None        # Object to baud rate drop down menu
         self.__bytesize_dd = None         # Object to byte size drop down menu
         self.__paritybits_dd = None       # Object to parity bits drop down menu
         self.__stopbits_dd = None         # Object to stop bits drop down menu
-        self.__timeout_textbox_dd = None     # Object to timeout input text box
+        self.__timeout_textbox_dd = None  # Object to timeout input text box
         self.__enable_logging_flag = None # Tracks if csv logger should be called or not
         return
+    
+
+    '''
+    Public Functions
+    '''
     
     '''
     Function Description: Generates a new window designed to set various
@@ -72,7 +90,7 @@ class settings_window_class(comm_settings_class):
         self.window = Toplevel()
         self.window.geometry("341x258")
         self.window.resizable(width=False, height=False)
-        self.window.title("Sheep Settings")
+        self.window.title("Sheep Settings" + self.__tab_name)
 
         # Disabled access to main terminal window
         self.window.grab_set()
@@ -154,20 +172,19 @@ class settings_window_class(comm_settings_class):
         self.__timeout_textbox_dd.grid(sticky=NSEW)
         self.__timeout_textbox_dd.insert(0, self.com_settings.readtimeout)
 
-        #global g_enable_logging_flag
         # Enable logging disabled by default
         self.__enable_logging_flag = False
         # Define an enable logging checkbox
-        enable_logging_checkbox = ui_objects.define_checkbox(config_frame0, 0, 5, "Enable Logging",
-                            self.__enable_logging_flag, self.enable_logging, "normal", "success-round-toggle")
-        enable_logging_checkbox.grid(sticky=W)
+        __enable_logging_checkbox = ui_objects.define_checkbox(config_frame0, 0, 5, "Enable Logging",
+                            self.__enable_logging_flag, self.__enable_logging, "normal", "success-round-toggle")
+        __enable_logging_checkbox.grid(sticky=W)
 
         # Define a set port settings button
         confirm_button = ui_objects.define_button(config_frame1, 1, 0, "Confirm",
-                                    self.confirm_settings, 'normal')
+                                    self.__confirm_settings, 'normal')
         confirm_button.grid(sticky=E)
         # Bind enter key to confirm button by default
-        self.window.protocol("<Return>",self.confirm_settings)
+        self.window.protocol("<Return>",self.__confirm_settings)
 
         # Define a cancel button
         cancel_button = ui_objects.define_button(config_frame1, 0, 0, "Cancel",
@@ -175,9 +192,24 @@ class settings_window_class(comm_settings_class):
         cancel_button.grid(sticky=E)
 
         if self.logger.file_obj != None:
-            enable_logging_checkbox['state'] = "disabled"
+            __enable_logging_checkbox['state'] = "disabled"
 
         return self.window
+
+    '''
+    Function Description: Getter for global serial com settings
+
+    Parameters: void
+
+    Return: copy of global com struct
+    '''
+    def get_sercomm_settings(self):
+        return self.com_settings
+
+
+    '''
+    Private Functions
+    '''
 
     '''
     Function Description: Accepts new settings, checks
@@ -186,14 +218,13 @@ class settings_window_class(comm_settings_class):
     with new settings. If the enable log checkbox is selected,
     calls a savefile dialog
 
-    Paramters: void
+    Parameters: void
 
     Return: True on success / False on Failure
     '''
 
-    def confirm_settings(self, event=None):
+    def __confirm_settings(self, event=None):
 
-        #global g_com_settings
         # Tracks previously set port settings
         com_settings_new = copy.copy(self.com_settings)
 
@@ -202,7 +233,7 @@ class settings_window_class(comm_settings_class):
         if(self.__enable_logging_flag == True):
 
             # Define the name of the log file as "log"_"Date"_"Time"_.csv
-            filename = "log_" + datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + ".csv"
+            filename = "log_" + self.__tab_name + "_" + datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + ".csv"
 
             self.logger.file_obj = self.logger.create_csv(filename)
 
@@ -211,7 +242,7 @@ class settings_window_class(comm_settings_class):
                 return False
             
             # Write the header fields in the log file
-            self.logger.logger.write_row_csv(['Timestamp','RX/TX','Data'])
+            self.logger.write_row_csv(['Timestamp','RX/TX','Data'])
 
         # Modify parity bit option to format required by function
         match self.__paritybits_dd.get():
@@ -249,66 +280,29 @@ class settings_window_class(comm_settings_class):
         # since previous port settings
         if(com_settings_new != self.com_settings):
 
-            status = sercomm.close_serial_com()
+            status = sercomm.close_serial_com(self.com_settings.serialport)
             # Check if serial port was closed
             if status  == False:
                 self.window.bell()
                 return False
 
-            status = sercomm.open_serial_com(com_settings_new.portname, com_settings_new.baud, 
+            new_serialport = sercomm.open_serial_com(com_settings_new.portname, com_settings_new.baud, 
             com_settings_new.bytesize, com_settings_new.readtimeout, com_settings_new.stopbits, 
             com_settings_new.paritybits)
 
             # If opening the serial com port failed
-            if status < False:
+            if new_serialport == False:
                 self.window.bell()
                 return False
 
             # Update global comm settings
             self.com_settings = copy.copy(com_settings_new)
+            self.com_settings.serialport = new_serialport
 
         # close window
         self.window.destroy()
 
         return True
-    '''    
-        # To perform a comparison of 2 objects of this class, I
-        # chose to over ride the comparison operator
-        def __eq__(objA, objB): 
-            if not isinstance(objB, settings_class):
-                # Don't attempt to compare against unrelated types
-                raise Exception ("Objects to be compared are not the same class")
-
-            return objA.com_settings == objB.com_settings \
-                and objA.logger == objB.logger \
-                and objA.term_theme == objB.term_theme
-    '''
-
-    '''
-    Functions
-    '''
-
-    '''
-    Function Description: Setter function for portname in global settings_class
-
-    Parameters: portname - Name of com port
-
-    Return: void
-    '''
-    def set_com_port(self, portname):
-        self.com_settings.portname = copy.copy(portname)
-        return
-
-    '''
-    Function Description: Getter for global serial com settings
-
-    Parameters: void
-
-    Return: copy of global com struct
-    '''
-    def get_sercomm_settings(self):
-        return self.com_settings
-
 
 
     '''
@@ -319,9 +313,7 @@ class settings_window_class(comm_settings_class):
 
     Return: void
     '''
-    def enable_logging(self):
-        #global g_enable_logging_flag    #Define scope of variable
-        #Python seems to think its a local for some reason otherwise
+    def __enable_logging(self):
         
         # Enable log file textbox if checkbox is set
         if self.__enable_logging_flag == True:

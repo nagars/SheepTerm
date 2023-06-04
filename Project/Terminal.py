@@ -1,15 +1,12 @@
 '''Generic Modules'''
 import tkinter                       # Import tkinter library used to generate GUI
 from tkinter import *                # Import tkinter modules used to generate GUI
-import ttkbootstrap as ttk_b
 
 from serial.serialutil import STOPBITS_ONE_POINT_FIVE       
 import serial.tools.list_ports as port_list # Import function to list serial ports.
 
 from datetime import datetime   # Import system date library
 import threading                # Imports python threading module
-
-import time 
 
 '''Custom Modules'''
 import sercomm      # custom library built to handle communication
@@ -21,23 +18,26 @@ import csvlogger as log    # custom library for logging data to .csv file
 Global Variables
 '''
 g_term_theme = 'superhero'   # Default theme of terminal
+g_tab_list = []    # Store all the tabs currently active
 
 '''
 Classes
 '''
 class terminal_tab:
-    def __init__(self, notebook) -> None:
-
-        self.tab = ui_objects.define_frame(notebook,0,0)
+    def __init__(self, notebook, tab_name) -> None:
 
         '''
-        Define global variables
+        Public Objects
         '''
+        self.tab_frame = ui_objects.define_frame(notebook,0,0,NSEW)    # Defines the tab for this class instance
+        self.tab_frame.columnconfigure(1, weight=1)
+        self.tab_frame.rowconfigure(1, weight=1)
+        
+        self.name = tab_name                    # Tracks the name of this tab
         self.terminate_event_flag = threading.Event() # Object is used to sync receive thread with main loop
         self.receive_thread = None       # Object is assigned the receive thread handle on initialisation
 
-        self.settings = settings_ui.settings_window_class()
-        self.serial_port = None     # Serial port opened by this tab
+        self.settings = settings_ui.settings_window_class(self.name)    # Instance of settings class
 
         '''
         Define tkinter variables
@@ -54,25 +54,27 @@ class terminal_tab:
         '''
         Define frames of tab
         '''
-      
-        # Create Display Configure Frame for checkbox and drop down options
-        self.config_frame = ui_objects.define_frame(self.tab, 0, 1)
-        self.config_frame.grid(sticky=NW)
         # Create COM Frame for COM port settings
-        self.com_frame = ui_objects.define_frame(self.tab,0,0)
-        self.com_frame.grid(sticky=NW)
+        self.com_frame = ui_objects.define_frame(self.tab_frame,0,0,NW)
+
+        # Create Display Configure Frame for checkbox and drop down options
+        self.config_frame = ui_objects.define_frame(self.tab_frame, 0, 1, NW)
+        
         # Create a Terminal frame to display actual data
-        self.display_frame = ui_objects.define_frame(self.tab,1,1)
-        self.display_frame.grid(sticky=NSEW)
+        self.display_frame = ui_objects.define_frame(self.tab_frame,1,1,NSEW)
+        # Ensure the terminal box expands with the frame
+        self.display_frame.columnconfigure(0, weight=1)
+        self.display_frame.rowconfigure(0, weight=1)
+
         # Create a boundary frame for the bottom
-        self.south_boundary_frame = ui_objects.define_frame(self.tab,0,2)
-        self.south_boundary_frame.grid(sticky=NSEW)
+        self.south_boundary_frame = ui_objects.define_frame(self.tab_frame,0,2,NW)
 
         '''
         Define COMM frame UI objects
         '''
         # Define a label for com port to be placed near text box
         self.com_port_label = ui_objects.define_label(self.com_frame, 0, 0, "COM PORT")
+        self.com_port_label.grid(sticky=NW)
         # List all the available serial ports
         self.com_ports_available = list(port_list.comports())
         # Remove unusable com port options
@@ -82,15 +84,18 @@ class terminal_tab:
             print(item)
             if str(item)[0:5] == "NULL_":
                 self.com_ports_available.remove(item)
-        self.com_ports_available = ["COM8", "COM9"]
+        self.com_ports_available = ["COM8", "COM9"]#REMOVE POST TESTING!@!!!!!!!!!!!!!!!
 
         # Define the drop down menu for com ports
         self.com_ports_menu = ui_objects.define_drop_down(self.com_frame, 1, 0, self.com_ports_available, 'readonly')
+        self.com_ports_menu.grid(sticky=NW)
         # Define Set COM port button
         self.open_com_button = ui_objects.define_button(self.com_frame, 2, 0, "Open Port", lambda: open_com_port(self), 'normal')
+        self.open_com_button.grid(sticky=NW)
         # Define a settings button for sercomm settings
         self.settings_button = ui_objects.define_button(self.com_frame, 3, 0, "Settings", 
                                         lambda: open_settings_window(self), 'disabled')
+        self.settings_button.grid(sticky=NW)
 
 
         '''
@@ -98,30 +103,30 @@ class terminal_tab:
         '''
         # Define a label for data type drop down
         self.display_type_label = ui_objects.define_label(self.config_frame, 0, 0, "Display Type")
-        self.display_type_label.grid(sticky=W)
+        self.display_type_label.grid(sticky=NW)
         #Create a show timestamp checkbox
-        self.timestamp_checkbox = ui_objects.define_checkbox(self.config_frame, 0, 2, "Show Timestamp", 
+        self.timestamp_checkbox = ui_objects.define_checkbox(self.config_frame, 0, 1, "Show Timestamp", 
                             self.timestamp_flag, None, 'normal', 'round-toggle')
-        self.timestamp_checkbox.grid(sticky=W)
+        self.timestamp_checkbox.grid(sticky=NW)
         #Generate list of data types
         self.data_types = ["STRING","ASCII","HEX"]
         #Create a drop down menu with different datatypes to represent on terminal
         self.data_types_dd = ui_objects.define_drop_down(self.config_frame, 1,0, self.data_types, 'readonly')
-        self.data_types_dd.grid(sticky=W)
+        self.data_types_dd.grid(sticky=NW)
         #Set default value of drop down menu
         self.data_types_dd.current(0)      
         #Create an include next line character checkbox
-        self.include_new_line_checkbox = ui_objects.define_checkbox(self.config_frame, 0, 3, "Include New Line Character",
+        self.include_new_line_checkbox = ui_objects.define_checkbox(self.config_frame, 0, 2, "Include New Line Character",
                                                 self.include_new_line_flag, None, "normal", 'round-toggle')
-        self.include_new_line_checkbox.grid(sticky=W)
+        self.include_new_line_checkbox.grid(sticky=NW)
         #Create an include carriage return character checkbox
-        self.include_carriage_return_checkbox = ui_objects.define_checkbox(self.config_frame, 0, 4, "Include Carriage Return Character",
+        self.include_carriage_return_checkbox = ui_objects.define_checkbox(self.config_frame, 0, 3, "Include Carriage Return Character",
                                                 self.include_carriage_return_flag, None, "normal", 'round-toggle')
-        self.include_carriage_return_checkbox.grid(sticky=W)
+        self.include_carriage_return_checkbox.grid(sticky=NW)
         #Create a echo checkbox
-        self.echo_checkbox = ui_objects.define_checkbox(self.config_frame, 0, 5, "Enable Echo",
+        self.echo_checkbox = ui_objects.define_checkbox(self.config_frame, 0, 4, "Enable Echo",
                                                 self.echo_enable_flag, None, "normal", 'round-toggle')
-        self.echo_checkbox.grid(sticky=W)
+        self.echo_checkbox.grid(sticky=NW)
 
 
         '''
@@ -131,6 +136,7 @@ class terminal_tab:
         self.terminal_box = ui_objects.define_scroll_textbox(self.display_frame, 0, 0, 50, 20)
         self.terminal_box.grid(sticky=NSEW)
         self.terminal_box.configure(font=('Times New Roman',13))
+
         # Create a text box to get the transmit message from user
         self.send_message_textbox = ui_objects.define_entry_textbox(self.display_frame, 0, 1, 47, 'disabled')
         self.send_message_textbox.grid(sticky=NSEW)
@@ -143,9 +149,6 @@ class terminal_tab:
         # Create a clear terminal display button
         self.clear_button = ui_objects.define_button(self.display_frame, 1, 0, "Clear", lambda: clear_button_pressed(self), 'normal')
         self.clear_button.grid(sticky=SE, padx=5, pady=5)
-        # Ensure the terminal box expands with the frame
-        self.display_frame.columnconfigure(0, weight=1)
-        self.display_frame.rowconfigure(0, weight=1)
 
         '''
         Define Empty frame UI objects
@@ -153,10 +156,6 @@ class terminal_tab:
         # Define an empty label to act as a spacer for the bottom 
         self.empty_label = ui_objects.define_label(self.south_boundary_frame, 0, 0, "")
         self.empty_label.grid(sticky=NSEW)
-
-    def get_tab(self):
-        return self.tab
-
 
 
 '''
@@ -178,7 +177,6 @@ def open_com_port(tab:terminal_tab):
 
     # Extract com port name from drop down string
     com_port = tab.com_ports_menu.get().split()[0]
-    #com_port = "COM8"
 
     # Get a copy of com port settings
     sercomm_settings = tab.settings.get_sercomm_settings()
@@ -212,15 +210,10 @@ def open_com_port(tab:terminal_tab):
     tab.com_ports_menu['state'] = 'disabled'
 
     # Set current com port variable in com settings struct
-    tab.settings.set_com_port(com_port)
+    tab.settings.com_settings.portname = com_port
 
-    # save valid serial port to calss variable
-    tab.serial_port = serial_port
-
-    # Create an event variable to sync termination of the main loop and receive thread
-    #global g_terminate_event
-    #g_terminate_event = threading.Event()
-    #tab.terminate_event_flag = threading.Event()
+    # save valid serial port to class variable
+    tab.settings.com_settings.serialport = serial_port
 
     # Create receive thread to print to terminal
     tab.receive_thread = threading.Thread(target= lambda: receive_thread(tab))
@@ -255,7 +248,7 @@ def send_button_pressed(tab : terminal_tab, event=None):
         return False
 
     # Transmit
-    sercomm.write_serial_com(tab.serial_port, transmit_msg)
+    sercomm.write_serial_com(tab.settings.com_settings.serialport, transmit_msg)
 
     # If echo_enable flag is set
     if tab.echo_enable_flag.get() == True:
@@ -308,30 +301,25 @@ def open_settings_window(tab : terminal_tab):
     # serial port with new settings
 
     # Set terminate flag for receive thread
-    #global g_terminate_event
     tab.terminate_event_flag.set()
 
     # Abort any read operation
-    sercomm.abort_serial_read(tab.serial_port)
+    sercomm.abort_serial_read(tab.settings.com_settings.serialport)
 
     # Wait till receive thread is terminated
-    #global g_receive_thread
     tab.receive_thread.join()
 
     # Call open settings window function
-    # settings_window = settings_ui.define_sercomm_settings_window()
     tab.settings.create_window()
 
     # Wait for the settings window to close
     window.wait_window(tab.settings.window)
 
-    # Get a copy of settings
-    #settings = tab.settings.get_sercomm_settings()
     # Perform a theme change if required
-    window.style.theme_use(tab.settings.term_theme)
+    window.style.theme_use(g_term_theme)       #TO REMIVE FROM HERE!!!!!!!!!!
 
     # Ensure serial port is open successfully
-    if sercomm.check_serial_port_status(tab.serial_port) == True:
+    if sercomm.check_serial_port_status(tab.settings.com_settings.serialport) == True:
 
         # Once settings are confirmed, 
         # Clear terminate_event flag and start receive thread again
@@ -418,7 +406,7 @@ def receive_thread(tab: terminal_tab):
     while not tab.terminate_event_flag.is_set():
         # Get data from serial port
         # Convert to string from bytes
-        msg = (sercomm.read_serial_com(tab.serial_port)).decode("UTF-8")
+        msg = (sercomm.read_serial_com(tab.settings.com_settings.serialport)).decode("UTF-8")
         # If length of msg is 0, a timeout has occurred with no data received
         if len(msg) == 0:
             serial_timout_occurred = True
@@ -498,35 +486,41 @@ Parameters: void
 
 Return: void
 '''
-def close_window(tab : terminal_tab):
-    
+def close_tab(tab : terminal_tab):
+
     # Check if the receive thread was started
-    try: tab.receive_thread
     # If not, directly terminate program
     # else terminate the thread and then the program 
-    except NameError:
+    if tab.receive_thread is None:
         pass
-    # Terminate receive thread, then terminate program
+
     else:
         # Set terminate flag for receive thread
         tab.terminate_event_flag.set()
 
         # Cancel any pending read
-        sercomm.abort_serial_read(tab.serial_port)
+        sercomm.abort_serial_read(tab.settings.com_settings.serialport)
 
         # wait till receive thread is terminated
         tab.receive_thread.join()
 
     # Close the com port
-    sercomm.close_serial_com(tab.serial_port)
+    sercomm.close_serial_com(tab.settings.com_settings.serialport)
 
     # Close file pointer for logger
     tab.settings.logger.close_csv()
 
+    return
+
+def close_window():
+
+    # Loop through all tabs and close each one
+    for i in g_tab_list:
+        close_tab(i)
+
     # Terminate window
     window.destroy()
     return
-
 
 '''
 Function Description: Clears scroll terminal screen
@@ -546,36 +540,58 @@ def clear_button_pressed(tab: terminal_tab):
     return
 
 
+def add_new_tab(notebook, tab_name):
+
+    # Create new instance of tab class
+    new_tab = terminal_tab(notebook, tab_name)
+
+    # Add to notebook
+    notebook.add(new_tab.tab_frame, text=tab_name)
+
+    # Add this tab to the global list tracking tabs
+    g_tab_list.append(new_tab)
+
+    return new_tab
+
+#tasktabs.select()
+def remove_tab(notebook, tab: terminal_tab):
+    
+    # Remove from global list of tabs
+    g_tab_list.remove(tab)
+
+    # Remove to notebook
+    notebook.forget(tab.tab_frame)
+
+
 '''
 Frame Definitions
 '''
 # Generate GUI window
 window = ui_objects.define_window("superhero")
 # Define window size
-window.geometry('1000x500')
+window.geometry('1150x700')
 # Set title for window
 window.title("Sheep-Term")
 #Ensure display frame expands with window
-window.columnconfigure(1, weight=1)
-window.rowconfigure(1, weight=1)
+window.columnconfigure(0, weight=1)
+window.rowconfigure(0, weight=1)
 # Bind Enter key to send button
-#window.bind('<Return>', send_button_pressed)
+window.bind('<Return>', send_button_pressed)
 
+# Create the notebook for the terminal frame
 terminal_notebook = ui_objects.define_notebook(window)
-terminal_notebook.pack(pady=20)
+terminal_notebook.grid(sticky=NSEW)
 
-tab1 = terminal_tab(terminal_notebook)
-tab2 = terminal_tab(terminal_notebook)
-tab_frame1 = tab1.get_tab()
-tab_frame2 = tab2.get_tab()
+# Create the default 3 tabs
+add_new_tab(terminal_notebook, "Tab0")
+#add_new_tab(terminal_notebook, "Tab1")
+#add_new_tab(terminal_notebook, "Tab2")
 
-terminal_notebook.add(tab_frame1, text="tab1")
-terminal_notebook.add(tab_frame2, text="tab2")
 
 '''
 Main loop
 '''
 # Install window close routine
-#window.protocol("WM_DELETE_WINDOW",close_window)
+window.protocol("WM_DELETE_WINDOW",close_window)
 window.mainloop()
 

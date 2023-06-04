@@ -4,8 +4,20 @@ from tkinter.filedialog import asksaveasfile # Import tkinter file save module
 
 class csvlogger_class:
     def __init__(self) -> None:
+
+        '''
+        Public Objects
+        '''
         self.file_obj = None    # Object is assigned a file pointer to the csv file
+        
+        '''
+        Private Objects
+        '''
         self.__writer_obj = None  # Object is assigned a csv writer object to csv file
+
+    '''
+    Public Functions
+    '''    
 
     '''
     Function Description: Triggers the save file prompt to save a
@@ -40,10 +52,9 @@ class csvlogger_class:
     '''
     def write_row_csv(self, print_list):
         
-        # Check if g___writer_obj is defined
+        # Check if ___writer_obj is defined
         # Implying that create_csv was called successfully
-        try: self.__writer_obj
-        except:
+        if self.__writer_obj is None:
             return False
 
         # Check that a file was saved successfully
@@ -63,10 +74,9 @@ class csvlogger_class:
     '''
     def close_csv(self):
         
-        # Check if g___writer_obj is defined
+        # Check if ___writer_obj is defined
         # Implying that create_csv was called
-        try: self.__writer_obj
-        except:
+        if self.__writer_obj is None:
             return False
         
         # Check that a file was saved successfully
