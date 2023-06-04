@@ -8,6 +8,9 @@ import serial.tools.list_ports as port_list # Import function to list serial por
 from datetime import datetime   # Import system date library
 import threading                # Imports python threading module
 
+import json     # Import json module
+import os       # For directory manipulation
+
 '''Custom Modules'''
 import sercomm      # custom library built to handle communication
 import settings_ui  # custom library built to manage the settings window 
@@ -17,8 +20,10 @@ import csvlogger as log    # custom library for logging data to .csv file
 '''
 Global Variables
 '''
-g_term_theme = 'superhero'   # Default theme of terminal
 g_tab_list = []    # Store all the tabs currently active
+
+theme_dir_path = ".theme"   # Saves the folder and file to store theme settings in
+theme_file_path = theme_dir_path + "/theme.json"
 
 '''
 Classes
@@ -156,6 +161,7 @@ class terminal_tab:
         # Define an empty label to act as a spacer for the bottom 
         self.empty_label = ui_objects.define_label(self.south_boundary_frame, 0, 0, "")
         self.empty_label.grid(sticky=NSEW)
+
 
 
 '''
@@ -314,9 +320,6 @@ def open_settings_window(tab : terminal_tab):
 
     # Wait for the settings window to close
     window.wait_window(tab.settings.window)
-
-    # Perform a theme change if required
-    window.style.theme_use(g_term_theme)       #TO REMIVE FROM HERE!!!!!!!!!!
 
     # Ensure serial port is open successfully
     if sercomm.check_serial_port_status(tab.settings.com_settings.serialport) == True:
@@ -515,8 +518,8 @@ def close_tab(tab : terminal_tab):
 def close_window():
 
     # Loop through all tabs and close each one
-    for i in g_tab_list:
-        close_tab(i)
+    for i in range(len(g_tab_list)):
+        close_tab(g_tab_list[i])
 
     # Terminate window
     window.destroy()
@@ -539,8 +542,24 @@ def clear_button_pressed(tab: terminal_tab):
     tab.terminal_box.config(state="disabled")
     return
 
+'''
+Menu Bar Functions
+'''
 
-def add_new_tab(notebook, tab_name):
+def add_tab(notebook):
+
+    # Return index number of current tab
+    curr_index = len(g_tab_list)
+
+    # Append index to name
+    tab_name = "Tab" + str(curr_index)
+
+    # Create new tab
+    create_tab(notebook, tab_name)
+
+    return
+
+def create_tab(notebook, tab_name):
 
     # Create new instance of tab class
     new_tab = terminal_tab(notebook, tab_name)
@@ -553,8 +572,15 @@ def add_new_tab(notebook, tab_name):
 
     return new_tab
 
-#tasktabs.select()
-def remove_tab(notebook, tab: terminal_tab):
+
+def remove_tab(notebook):
+
+    delete_tab(notebook, g_tab_list[terminal_notebook.index(terminal_notebook.select())])
+
+    return
+
+
+def delete_tab(notebook, tab: terminal_tab):
     
     # Remove from global list of tabs
     g_tab_list.remove(tab)
@@ -562,6 +588,77 @@ def remove_tab(notebook, tab: terminal_tab):
     # Remove to notebook
     notebook.forget(tab.tab_frame)
 
+    return
+
+
+def create_menubar(container):
+
+    menu_bar = Menu(container)
+    container.config(menu=menu_bar)
+
+    tab_menu = Menu(menu_bar)
+    theme_menu = Menu(menu_bar)
+    
+    menu_bar.add_cascade(label="Tab", menu=tab_menu)
+    tab_menu.add_command(label="Add Tab", command=lambda: add_tab(terminal_notebook))
+    tab_menu.add_command(label="Remove Tab", command=lambda: remove_tab(terminal_notebook))
+
+    menu_bar.add_cascade(label="Theme", menu=theme_menu)
+    theme_menu.add_command(label="Default", command=lambda: set_theme("superhero"))
+    theme_menu.add_command(label="Dark", command=lambda: set_theme("darkly"))
+    theme_menu.add_command(label="Light", command=lambda: set_theme("journal"))
+
+    return menu_bar
+
+'''
+Theme Functions
+'''
+def save_theme(theme):
+
+    # Check if the theme hidden folder exists
+    if os.path.isdir(theme_dir_path) == FALSE:
+        # Create it if it doesnt exist
+        os.mkdir(theme_dir_path)
+
+    # Write to file
+    with open(theme_file_path, 'w') as json_file:
+        json.dump({"theme":theme}, json_file)
+    
+    return
+
+def load_theme():
+
+    # Check if the theme hidden folder exists
+    if os.path.isdir(theme_dir_path) == FALSE:
+        # Create it if it doesnt exist
+        os.mkdir(theme_dir_path)
+
+    # Check if the theme json file exists
+    if os.path.isfile(theme_file_path):
+        # If yes, open and read it
+        with open(theme_file_path, 'r') as f:
+            data = json.load(f)
+            saved_theme = data.get("theme")
+    else:
+        # If not, create one and set the default theme
+        saved_theme = "superhero"
+        save_theme(saved_theme)
+
+    return saved_theme
+
+def set_theme(term_theme = None):
+
+    if term_theme == None:
+        # Load theme from the saved file
+        term_theme = load_theme()
+
+    # Perform a theme change if required
+    window.style.theme_use(term_theme)   
+
+    # Save the latest set theme
+    save_theme(term_theme)
+
+    return
 
 '''
 Frame Definitions
@@ -575,18 +672,25 @@ window.title("Sheep-Term")
 #Ensure display frame expands with window
 window.columnconfigure(0, weight=1)
 window.rowconfigure(0, weight=1)
-# Bind Enter key to send button
-window.bind('<Return>', send_button_pressed)
 
 # Create the notebook for the terminal frame
 terminal_notebook = ui_objects.define_notebook(window)
 terminal_notebook.grid(sticky=NSEW)
 
-# Create the default 3 tabs
-add_new_tab(terminal_notebook, "Tab0")
-#add_new_tab(terminal_notebook, "Tab1")
-#add_new_tab(terminal_notebook, "Tab2")
+# Create a menu Bar
+menu_bar = create_menubar(window)
 
+# Create the default tab
+create_tab(terminal_notebook, "Tab0")
+
+# Set previously saved theme
+set_theme()
+
+# Bind Enter key to send button
+#window.bind('<Enter>', send_button_pressed(g_tab_list[terminal_notebook.index(terminal_notebook.select())]))
+
+# Change icon of the window
+window.iconbitmap("ShaunTheSheep.ico")
 
 '''
 Main loop
