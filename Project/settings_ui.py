@@ -10,7 +10,7 @@ import math     # Import math for floats comparison
 from datetime import datetime   # Import system date library
 
 ''' Custom Modules'''
-import ui_objects           # custom library built to handle common UI objects
+import objects_ui           # custom library built to handle common UI objects
 import sercomm              # custom library for sercomm api
 import csvlogger as log     # custom library for logging data to .csv file
 
@@ -99,15 +99,15 @@ class settings_window_class:
         self.window.protocol("WM_DELETE_WINDOW",self.window.destroy)
 
         # Create new frames
-        config_frame0 = ui_objects.define_frame(self.window, 0, 0)
+        config_frame0 = objects_ui.define_frame(self.window, 0, 0)
         config_frame0.grid(sticky=NW)
-        config_frame1 = ui_objects.define_frame(self.window, 0, 1)
+        config_frame1 = objects_ui.define_frame(self.window, 0, 1)
         config_frame1.grid(sticky=NW)
 
         # Define UI objects
 
         # Define a label for baud rates
-        baud_rate_label = ui_objects.define_label(config_frame0, 0, 0, "Baud Rate: ")
+        baud_rate_label = objects_ui.define_label(config_frame0, 0, 0, "Baud Rate: ")
         baud_rate_label.grid(sticky=W)
         # Generate list of baud rates
         bauds = [50, 75, 110, 134, 150, 200, 300, 600, 1200, 1800, 
@@ -115,29 +115,29 @@ class settings_window_class:
                     460800, 500000, 576000, 921600, 1000000, 1152000, 1500000, 
                     2000000, 2500000, 3000000, 3500000, 4000000]
         # Create a drop down menu with different baud rates
-        self.__baud_rate_dd = ui_objects.define_drop_down(config_frame0, 1, 0, bauds, 'readonly')
+        self.__baud_rate_dd = objects_ui.define_drop_down(config_frame0, 1, 0, bauds, 'readonly')
         self.__baud_rate_dd.grid(sticky=W)
         # Set default value (9600) of drop down menu
         self.__baud_rate_dd.current(bauds.index(int(self.com_settings.baud))) 
 
         # Define a label for bytesize
-        bytesize_label = ui_objects.define_label(config_frame0, 0, 1, "Byte size: ")
+        bytesize_label = objects_ui.define_label(config_frame0, 0, 1, "Byte size: ")
         bytesize_label.grid(sticky=W)
         # Generate list of byte sizes
         bytesize = [5, 6, 7, 8]
         # Create a drop down menu with different settings
-        self.__bytesize_dd = ui_objects.define_drop_down(config_frame0, 1, 1, bytesize, 'readonly')
+        self.__bytesize_dd = objects_ui.define_drop_down(config_frame0, 1, 1, bytesize, 'readonly')
         self.__bytesize_dd.grid(sticky=W)
         # Set default value (8 bits) of drop down menu
         self.__bytesize_dd.current(bytesize.index(int(self.com_settings.bytesize)))
 
         # Define a label for parity bits
-        paritybits_label = ui_objects.define_label(config_frame0, 0, 2, "Parity bits: ")
+        paritybits_label = objects_ui.define_label(config_frame0, 0, 2, "Parity bits: ")
         paritybits_label.grid(sticky=W)
         # Generate list of parity modes
         paritybits = ["None", "Even", "Odd", "Mark", "Space"]
         # Create a drop down menu with different settings
-        self.__paritybits_dd = ui_objects.define_drop_down(config_frame0, 1, 2, paritybits, 'readonly')
+        self.__paritybits_dd = objects_ui.define_drop_down(config_frame0, 1, 2, paritybits, 'readonly')
         self.__paritybits_dd.grid(sticky=W)
         # Set default value (None) of drop down menu
         match self.com_settings.paritybits:
@@ -153,41 +153,41 @@ class settings_window_class:
                 self.__paritybits_dd.current(paritybits.index("Space"))
 
         # Define a label for stop bits
-        stopbits_label = ui_objects.define_label(config_frame0, 0, 3, "Stop bits: ")
+        stopbits_label = objects_ui.define_label(config_frame0, 0, 3, "Stop bits: ")
         stopbits_label.grid(sticky=W)
         # Generate list of parity modes
         stopbits = [1, 1.5, 2]
         # Create a drop down menu with different settings
-        self.__stopbits_dd = ui_objects.define_drop_down(config_frame0, 1, 3, stopbits, 'readonly')
+        self.__stopbits_dd = objects_ui.define_drop_down(config_frame0, 1, 3, stopbits, 'readonly')
         self.__stopbits_dd.grid(sticky=W)
         # Set default value (1) of drop down menu
         self.__stopbits_dd.current(stopbits.index(float(self.com_settings.stopbits)))
 
         # Define Read timeout
         # Define a label for read timeout
-        readtimeout_label = ui_objects.define_label(config_frame0, 0, 4, "Read timeout(s): ")
+        readtimeout_label = objects_ui.define_label(config_frame0, 0, 4, "Read timeout(s): ")
         readtimeout_label.grid(sticky=W)
         # Create a text box to get the transmit message from user
-        self.__timeout_textbox_dd = ui_objects.define_entry_textbox(config_frame0, 1, 4, 1, 'normal')
+        self.__timeout_textbox_dd = objects_ui.define_entry_textbox(config_frame0, 1, 4, 1, 'normal')
         self.__timeout_textbox_dd.grid(sticky=NSEW)
         self.__timeout_textbox_dd.insert(0, self.com_settings.readtimeout)
 
         # Enable logging disabled by default
         self.__enable_logging_flag = False
         # Define an enable logging checkbox
-        __enable_logging_checkbox = ui_objects.define_checkbox(config_frame0, 0, 5, "Enable Logging",
+        __enable_logging_checkbox = objects_ui.define_checkbox(config_frame0, 0, 5, "Enable Logging",
                             self.__enable_logging_flag, self.__enable_logging, "normal", "success-round-toggle")
         __enable_logging_checkbox.grid(sticky=W)
 
         # Define a set port settings button
-        confirm_button = ui_objects.define_button(config_frame1, 1, 0, "Confirm",
+        confirm_button = objects_ui.define_button(config_frame1, 1, 0, "Confirm",
                                     self.__confirm_settings, 'normal')
         confirm_button.grid(sticky=E)
         # Bind enter key to confirm button by default
         self.window.protocol("<Return>",self.__confirm_settings)
 
         # Define a cancel button
-        cancel_button = ui_objects.define_button(config_frame1, 0, 0, "Cancel",
+        cancel_button = objects_ui.define_button(config_frame1, 0, 0, "Cancel",
                                     self.window.destroy, 'normal')
         cancel_button.grid(sticky=E)
 
