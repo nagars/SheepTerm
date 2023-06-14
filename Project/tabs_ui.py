@@ -259,6 +259,9 @@ class terminal_tab:
         tab.receive_thread = threading.Thread(target= lambda: type(tab).receive_thread(tab))
         tab.receive_thread.start()
 
+        # Bind enter key to send button
+        #tab.window.bind("<Return>", lambda event=None: terminal_tab.send_button_pressed(tab))
+
         return com_port
 
 

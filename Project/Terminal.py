@@ -19,6 +19,8 @@ settings_dir_path = ".settings"   # Saves the folder and file to store settings 
 theme_file_path = settings_dir_path + "/theme.json" # Theme settings
 config_file_path = settings_dir_path + "/config.json"   # Tab configuration settings
 
+default_theme = "superhero"
+
 
 def confirm_tabname(tab_window, new_tab_name, event=None):
 
@@ -200,11 +202,12 @@ def create_menubar():
     
     menu_bar.add_cascade(label="Tab", menu=tab_menu)
     tab_menu.add_command(label="Add Tab", command=lambda: add_tab())
-    tab_menu.add_command(label="Edit Name", command=lambda: edit_tabname())
+    tab_menu.add_command(label="Edit Tab Name", command=lambda: edit_tabname())
     tab_menu.add_command(label="Remove Tab", command=lambda: delete_tab())
+    tab_menu.add_command(label="Clear Settings", command=lambda: clear_settings())
 
     menu_bar.add_cascade(label="Theme", menu=theme_menu)
-    theme_menu.add_command(label="Default", command=lambda: set_theme("superhero"))
+    theme_menu.add_command(label="Default", command=lambda: set_theme(default_theme))
     theme_menu.add_command(label="Dark", command=lambda: set_theme("darkly"))
     theme_menu.add_command(label="Light", command=lambda: set_theme("journal"))
 
@@ -280,7 +283,7 @@ def save_tabs():
     # Create a dictionary with current tab index and names
     data = {
             "tab_index" : g_curr_tab_index,
-            "tab_name"  : tab_name
+            "tab_names"  : tab_name
     }
 
     # Save to json file
@@ -299,7 +302,7 @@ def setup_tabs():
 
     # Get list of tab names
     tab_names = list()
-    tab_names = data.get("tab_name")
+    tab_names = data.get("tab_names")
 
     global g_tab_name
     # For every tab name in list, create a new tab
@@ -340,7 +343,7 @@ def load_theme():
             saved_theme = data.get("theme")
     else:
         # If not, create one and set the default theme
-        saved_theme = "superhero"
+        saved_theme = default_theme
         save_theme(saved_theme)
 
     return saved_theme
@@ -359,12 +362,40 @@ def set_theme(term_theme = None):
 
     return
 
+def clear_settings():
+
+    # Delete all tabs
+    for i in range(len(g_tab_list)):
+        delete_tab()
+
+    # Reset global tab index and tab name
+    global g_curr_tab_index
+    g_curr_tab_index = 0
+    global g_tab_name
+    g_tab_name = "Tab0"
+
+    # Create a new tab
+    create_tab()
+
+    # Set theme to default
+    set_theme(default_theme)
+    
+    return
+
+def set_widget_focus():
+
+    window.bind("<Return>", lambda event=None: tabs_ui.terminal_tab.
+                send_button_pressed(g_tab_list[terminal_notebook.index(terminal_notebook.select())]))
+
+    g_tab_list[terminal_notebook.index(terminal_notebook.select())].terminal_box.focus()
+
+    return
 
 '''
 Frame Definitions
 '''
 # Generate GUI window
-window = objects_ui.define_window("superhero")
+window = objects_ui.define_window(default_theme)
 # Define window size
 window.geometry('1150x700')
 # Set title for window
@@ -389,12 +420,11 @@ setup_tabs()
 # Bind Enter key to send button of default tab
 window.bind("<Return>", lambda event=None: tabs_ui.terminal_tab.send_button_pressed(g_tab_list[0]))
 
-# Re-bind enter key to send button of new tab in focus using a function called on tab change
+# Re-bind enter key to button of new tab in focus using a function called on tab change
 # terminal_notebook.select() returns handle of current tab frame
 # terminal_notebook.index() returns an index number of the handle
 # Index number corresponds to its position int he g_tab_list global array of tabs
-terminal_notebook.bind("<Return>", lambda event=None: tabs_ui.terminal_tab.send_button_pressed(
-                        g_tab_list[terminal_notebook.index(terminal_notebook.select())]))
+terminal_notebook.bind("<<NotebookTabChanged>>", lambda event=None: set_widget_focus())
 
 # Change icon of the window
 window.iconbitmap("ShaunTheSheep.ico")
