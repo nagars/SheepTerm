@@ -183,8 +183,10 @@ class settings_window_class:
         self.confirm_button = objects_ui.define_button(config_frame1, 1, 0, "Confirm",
                                     self.__confirm_settings, 'normal')
         self.confirm_button.grid(sticky=E)
-        # Bind enter key to confirm button by default
+        
+        # Bind enter key to confirm button
         self.window.bind("<Return>", lambda event=None: self.confirm_button.invoke())
+        # Bind escape key to cancel button
         self.window.bind("<Escape>", lambda event=None: self.cancel_button.invoke())
 
         # Define a cancel button

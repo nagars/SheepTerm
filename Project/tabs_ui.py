@@ -76,7 +76,8 @@ class terminal_tab:
             print(item)
             if str(item)[0:5] == "NULL_":
                 self.com_ports_available.remove(item)
-        self.com_ports_available = ["COM8", "COM9"]#REMOVE POST TESTING!@!!!!!!!!!!!!!!!
+        self.com_ports_available.append("COM8") #REMOVE POST TESTING!@!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        self.com_ports_available.append("COM9") #REMOVE POST TESTING!@!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
         # Define the drop down menu for com ports
         self.com_ports_menu = objects_ui.define_drop_down(self.com_frame, 1, 0, self.com_ports_available, 'readonly')

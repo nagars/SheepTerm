@@ -15,8 +15,9 @@ Global Variables
 g_tab_list = []    # Store all the tabs currently active
 g_curr_tab_index = 0
 
-theme_dir_path = ".theme"   # Saves the folder and file to store theme settings in
-theme_file_path = theme_dir_path + "/theme.json"
+settings_dir_path = ".settings"   # Saves the folder and file to store settings in
+theme_file_path = settings_dir_path + "/theme.json" # Theme settings
+config_file_path = settings_dir_path + "/config.json"   # Tab configuration settings
 
 
 def confirm_tabname(tab_window, new_tab_name, event=None):
@@ -44,7 +45,7 @@ def create_tabname_window(default_tabname : str):
 
     # Create new window over the main window
     tab_window = Toplevel()
-    tab_window.geometry("400x100")
+    #tab_window.geometry("400x100")
     tab_window.resizable(width=False, height=False)
     tab_window.title("New Tab")
     #window.eval(f'tk::PlaceWindow {str(tab_window)} center')
@@ -62,7 +63,7 @@ def create_tabname_window(default_tabname : str):
     frame1.grid(sticky=NW)
 
     # Create a text box to add the name into. Autmatically has default name
-    tab_name_textbox = objects_ui.define_entry_textbox(frame0, 0, 0, 47)
+    tab_name_textbox = objects_ui.define_entry_textbox(frame0, 0, 0, 30)
     tab_name_textbox.grid(sticky=NSEW)
     tab_name_textbox.configure(font=('Times New Roman',11))
     tab_name_textbox.insert(0, g_tab_name)
@@ -91,6 +92,22 @@ def create_tabname_window(default_tabname : str):
 Menu Bar Functions
 '''
 
+def create_tab():
+
+    # Create new instance of tab class
+    new_tab = tabs_ui.terminal_tab(window, terminal_notebook, g_tab_name)
+
+    # Add to notebook
+    terminal_notebook.add(new_tab.tab_frame, text=g_tab_name)
+
+    # Add this tab to the global list tracking tabs
+    g_tab_list.append(new_tab)
+
+    # Change focus to new tab
+    terminal_notebook.select((new_tab.tab_frame))
+
+    return
+
 '''
 Function Description: Creates an instance of terminal_tab class
 and adds it to the notebook
@@ -100,9 +117,6 @@ Parameters: notebook - Notebook to add tab too
 Return: tab object
 '''
 def add_tab():
-
-    # Return index number of current tab
-    #curr_index = len(g_tab_list)
 
     # Append index to name
     global g_curr_tab_index
@@ -118,17 +132,7 @@ def add_tab():
     # Check if confirm button was pressed or if cancel was pressed
     if g_add_tab_flag == TRUE:
     
-        # Create new instance of tab class
-        new_tab = tabs_ui.terminal_tab(window, terminal_notebook, g_tab_name)
-
-        # Add to notebook
-        terminal_notebook.add(new_tab.tab_frame, text=g_tab_name)
-
-        # Add this tab to the global list tracking tabs
-        g_tab_list.append(new_tab)
-
-        # Change focus to new tab
-        terminal_notebook.select((new_tab.tab_frame))
+        create_tab()
 
     return
 
@@ -159,8 +163,8 @@ def delete_tab():
 
 def edit_tabname():
 
-    # Get current tab handler
-    curr_tab = terminal_notebook.index("current")
+    # Get current tab index
+    curr_tab_index = terminal_notebook.index("current")
 
     # Get current tab name
     curr_tabname = terminal_notebook.tab(terminal_notebook.select(), "text")
@@ -172,8 +176,11 @@ def edit_tabname():
     window.wait_window(tab_window)
 
     # Modify name of tab
-    terminal_notebook.tab(curr_tab, text= g_tab_name)
+    terminal_notebook.tab(curr_tab_index, text=g_tab_name)
 
+    # Modify name in tab object
+    g_tab_list[curr_tab_index].name = g_tab_name
+    
     return
 
 '''
@@ -213,6 +220,9 @@ Return: void
 '''
 def close_window():
 
+    # Save tab configuration
+    save_tabs()
+
     # Loop through all tabs and close each one
     for i in range(len(g_tab_list)):
         g_tab_list[i].close_tab()
@@ -221,16 +231,93 @@ def close_window():
     window.destroy()
     return
 
+'''
+Tab configuration Functions
+'''
+def save_config(data):
+    
+    # Check if the settings hidden folder exists
+    if os.path.isdir(settings_dir_path) == FALSE:
+        # Create it if it doesnt exist
+        os.mkdir(settings_dir_path)
+
+    # Write to file
+    with open(config_file_path, 'w') as json_file:
+        json.dump(data, json_file)
+
+    return
+
+def load_config():
+
+    # Check if the settings hidden folder exists
+    if os.path.isdir(settings_dir_path) == FALSE:
+        # Create it if it doesnt exist
+        os.mkdir(settings_dir_path)
+
+    # Check if the config json file exists
+    if os.path.isfile(config_file_path):
+        # If yes, open and read it
+        with open(config_file_path, 'r') as f:
+            data = json.load(f)
+    
+    else:
+        # If not, create one and set the default theme
+        data = {
+                "tab_index" : 0,
+                "tab_names" : ["Tab0"]
+                }
+        save_config(data)
+
+    return data
+
+def save_tabs():
+
+    # Save a list of all active tab names
+    tab_name = list()
+    for i in range(len(g_tab_list)):
+        tab_name.append(g_tab_list[i].name)
+
+    # Create a dictionary with current tab index and names
+    data = {
+            "tab_index" : g_curr_tab_index,
+            "tab_name"  : tab_name
+    }
+
+    # Save to json file
+    save_config(data)
+
+    return
+
+def setup_tabs():
+
+    # Load tab index and names from json file
+    data = load_config()
+
+    # Set global tab index. Used to number future tabs
+    global g_curr_tab_index
+    g_curr_tab_index = data.get("tab_index")
+
+    # Get list of tab names
+    tab_names = list()
+    tab_names = data.get("tab_name")
+
+    global g_tab_name
+    # For every tab name in list, create a new tab
+    for i in range(len(tab_names)):
+        g_tab_name = tab_names[i]
+        create_tab()
+
+    return
 
 '''
 Theme Functions
 '''
 def save_theme(theme):
 
-    # Check if the theme hidden folder exists
-    if os.path.isdir(theme_dir_path) == FALSE:
+    # Check if the settings hidden folder exists
+    if os.path.isdir(settings_dir_path) == FALSE:
         # Create it if it doesnt exist
-        os.mkdir(theme_dir_path)
+        os.mkdir(settings_dir_path)
 
     # Write to file
     with open(theme_file_path, 'w') as json_file:
@@ -241,9 +328,9 @@ def save_theme(theme):
 def load_theme():
 
     # Check if the theme hidden folder exists
-    if os.path.isdir(theme_dir_path) == FALSE:
+    if os.path.isdir(settings_dir_path) == FALSE:
         # Create it if it doesnt exist
-        os.mkdir(theme_dir_path)
+        os.mkdir(settings_dir_path)
 
     # Check if the theme json file exists
     if os.path.isfile(theme_file_path):
@@ -296,9 +383,8 @@ menu_bar = create_menubar()
 # Set previously saved theme
 set_theme()
 
-# Create the default tab
-g_tab_list.append(tabs_ui.terminal_tab(window, terminal_notebook, "Tab0"))
-terminal_notebook.add(g_tab_list[0].tab_frame, text=g_tab_list[g_curr_tab_index].name)
+# Setup tab configuration
+setup_tabs()
 
 # Bind Enter key to send button of default tab
 window.bind("<Return>", lambda event=None: tabs_ui.terminal_tab.send_button_pressed(g_tab_list[0]))
