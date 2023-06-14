@@ -57,7 +57,7 @@ Return: drop down object
 def define_drop_down(container, position_y, position_x, content_list, default_state = 'normal', theme = 'default'):
 
     menu = ttk_b.Combobox(container, value=content_list, state=default_state, bootstyle = theme)
-    menu.grid(column=position_y, row=position_x, padx=2, pady=2)
+    menu.grid(column=position_y, row=position_x, padx=1, pady=1)
 
     return menu
 
@@ -201,6 +201,17 @@ def define_radiobutton(container, position_y, position_x, text = '', status_vari
     return radiobutton
 
 
+'''
+Function Description: Defines a UI notebook for tabs
+
+Parameters: container - Main window object
+padding - space around the notebook
+theme - ttkbootstrap theme
+
+Note: Refer to https://ttkbootstrap.readthedocs.io/en/version-0.5/widgets/notebook.html
+
+Return: Instance of notebook
+'''
 def define_notebook(container, padding= 10, theme = 'dark'):
     notebook = ttk_b.Notebook(container, bootstyle = theme)
     notebook.grid(pady=padding, padx=padding)

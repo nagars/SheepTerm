@@ -180,16 +180,17 @@ class settings_window_class:
         __enable_logging_checkbox.grid(sticky=W)
 
         # Define a set port settings button
-        confirm_button = objects_ui.define_button(config_frame1, 1, 0, "Confirm",
+        self.confirm_button = objects_ui.define_button(config_frame1, 1, 0, "Confirm",
                                     self.__confirm_settings, 'normal')
-        confirm_button.grid(sticky=E)
+        self.confirm_button.grid(sticky=E)
         # Bind enter key to confirm button by default
-        self.window.protocol("<Return>",self.__confirm_settings)
+        self.window.bind("<Return>", lambda event=None: self.confirm_button.invoke())
+        self.window.bind("<Escape>", lambda event=None: self.cancel_button.invoke())
 
         # Define a cancel button
-        cancel_button = objects_ui.define_button(config_frame1, 0, 0, "Cancel",
+        self.cancel_button = objects_ui.define_button(config_frame1, 0, 0, "Cancel",
                                     self.window.destroy, 'normal')
-        cancel_button.grid(sticky=E)
+        self.cancel_button.grid(sticky=E)
 
         if self.logger.file_obj != None:
             __enable_logging_checkbox['state'] = "disabled"
