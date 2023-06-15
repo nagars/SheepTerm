@@ -31,10 +31,11 @@ Note: Refer to https://ttkbootstrap.readthedocs.io/en/latest/styleguide/frame/
 
 Return: frame object
 '''
-def define_frame(container, position_y, position_x, theme='default'):
+def define_frame(container, position_y, position_x, frame_sticky=None, theme='default'):
 
     frame = ttk_b.Frame(container, bootstyle=theme)
     frame.grid(column=position_y, row=position_x)
+    frame.grid(sticky=frame_sticky)
 
     return frame
 
@@ -56,7 +57,7 @@ Return: drop down object
 def define_drop_down(container, position_y, position_x, content_list, default_state = 'normal', theme = 'default'):
 
     menu = ttk_b.Combobox(container, value=content_list, state=default_state, bootstyle = theme)
-    menu.grid(column=position_y, row=position_x, padx=2, pady=2)
+    menu.grid(column=position_y, row=position_x, padx=1, pady=1)
 
     return menu
 
@@ -100,9 +101,8 @@ Return: button object
 '''
 def define_label(container, position_y, position_x, text = '', theme = 'normal'):
 
-    label = ttk_b.Label(container, text=text, bootstyle=theme,)
+    label = ttk_b.Label(container, text=text, bootstyle=theme)
     label.grid(column=position_y, row=position_x, padx=2, pady=2)
-
     return label
 
 
@@ -143,7 +143,7 @@ position_x - row index for frame position
 
 Return: textbox object
 '''
-def define_scroll_textbox(container, position_y, position_x, width, height):
+def define_scroll_textbox(container, position_y, position_x, width = None, height = None):
 
     scrollbox = scrolledtext.ScrolledText(container, width=width, height=height, state="disabled")
     scrollbox.grid(column=position_y, row=position_x, padx=2, pady=2)
@@ -198,3 +198,25 @@ def define_radiobutton(container, position_y, position_x, text = '', status_vari
     radiobutton.grid(column=position_y, row=position_x, padx=2, pady=2)
 
     return radiobutton
+
+
+'''
+Function Description: Defines a UI notebook for tabs
+
+Parameters: container - Main window object
+padding - space around the notebook
+theme - ttkbootstrap theme
+
+Note: Refer to https://ttkbootstrap.readthedocs.io/en/version-0.5/widgets/notebook.html
+
+Return: Instance of notebook
+'''
+def define_notebook(container, padding= 10, theme = 'dark'):
+    notebook = ttk_b.Notebook(container, bootstyle = theme)
+    notebook.grid(pady=padding, padx=padding)
+
+    # Control + Tab selects the next tab
+    # Shift + Tab selects the previous tab
+    notebook.enable_traversal()
+
+    return notebook

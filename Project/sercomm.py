@@ -1,12 +1,6 @@
 import serial  # Import pyserial library
 from serial.serialutil import STOPBITS_ONE_POINT_FIVE       
-import serial.tools.list_ports as port_list # Import function to list serial ports.
 from serial import SerialException  # Import pyserial exception handling
-
-'''
-Global Variables
-'''
-global g_serial_port        # Object is assigned serial port identifier
 
 '''
 Functions
@@ -16,14 +10,14 @@ Functions
 Function Description: open com port to USBtoTTL converter
 with default settings unless specified otherwise
 
-Parameters: com_port - com port to open
+Parameters: com_port - com port name to open
             baud - baud rate (default 9600)
             bytes_size = size of each packet (default 8)
             timeout - wait time for new packets during reception (default 2 sec)
             stop_bits - number of stop bits (default one)
             parity_bits - parity (default none)
 
-Return - True on success, False on failure
+Return - serial port, else false
 '''
 def open_serial_com(com_port, baud = 9600, bytes_size = 8, time_out = 2, stop_bits = serial.STOPBITS_ONE, 
                     parity_bit = serial.PARITY_NONE):
@@ -32,10 +26,9 @@ def open_serial_com(com_port, baud = 9600, bytes_size = 8, time_out = 2, stop_bi
     if(com_port == ''):
         return False
 
-    global g_serial_port
     # Open selected com port with default parameters. Returned port handle is set as global variable
     try:
-        g_serial_port = serial.Serial(port = com_port, baudrate = baud, bytesize = bytes_size, timeout = time_out, 
+        serial_port = serial.Serial(port = com_port, baudrate = baud, bytesize = bytes_size, timeout = time_out, 
                                     stopbits = stop_bits, parity = parity_bit)
     # Check if COM port failed to open. Return failure value
     except SerialException:
@@ -46,9 +39,9 @@ def open_serial_com(com_port, baud = 9600, bytes_size = 8, time_out = 2, stop_bi
         return False
 
     # Flush the port
-    g_serial_port.flush()
+    serial_port.flush()
 
-    return True
+    return serial_port
 
 '''
 Function Description: Writes to serial port
@@ -58,18 +51,13 @@ Parameters: void
 Return: Number of bytes written to serial port/ False if serial port
         is not initialised
 '''
-def write_serial_com(data):
+def write_serial_com(serial_port, data):
     
-    # Check if g_serial_port is defined
-    # Implying that open_serial_com was called
-    #try: g_serial_port
-    #except NameError: 
-    #   return False
-    
-    if(False == check_serial_port_status()):
+    # Check that serial port is still valid
+    if(False == check_serial_port_status(serial_port)):
         return False
 
-    return g_serial_port.write(data.encode())
+    return serial_port.write(data.encode())
 
 '''
 Function Description: Returns data read from serial
@@ -79,18 +67,13 @@ Parameters: size - Number of bytes to read. Defaults to 1 byte
 
 Return: Bytes read from serial port
 '''
-def read_serial_com(size=1):
-    
-    # Check if g_serial_port is defined
-    # Implying that open_serial_com was called
-    #try: g_serial_port
-    #except NameError: 
-    #   return False
+def read_serial_com(serial_port, size=1):
 
-    if(False == check_serial_port_status()):
+    # Check that serial port is still valid
+    if(False == check_serial_port_status(serial_port)):
         return False
 
-    return g_serial_port.read(size)
+    return serial_port.read(size)
 
 '''
 Function Description: Closes serial port if
@@ -101,19 +84,14 @@ Parameters: void
 Return: False if serial port is not open / 
         True on successful closure
 '''
-def close_serial_com():
+def close_serial_com(serial_port):
 
-    # Check if g_serial_port is defined
-    # Implying that open_serial_com was called
-    #try: g_serial_port
-    #except NameError: 
-    #   return False
-
-    if(False == check_serial_port_status()):
+    # Check that serial port is still valid
+    if(False == check_serial_port_status(serial_port)):
         return False
 
     # Close serial port
-    g_serial_port.close()
+    serial_port.close()
 
     return True
 
@@ -124,18 +102,13 @@ Parameters: void
 
 Return: void
 '''
-def abort_serial_read():
+def abort_serial_read(serial_port):
     
-    # Check if g_serial_port is defined
-    # Implying that open_serial_com was called
-    #try: g_serial_port
-    #except NameError: 
-    #   return False
-    
-    if(False == check_serial_port_status()):
+    # Check that serial port is still valid
+    if(False == check_serial_port_status(serial_port)):
         return False
 
-    g_serial_port.cancel_read()
+    serial_port.cancel_read()
     return
 
 '''
@@ -146,12 +119,13 @@ Parameters: void
 Return: True on success / False on Failure or invalid serial
         port identifier
 '''
-def check_serial_port_status():
+def check_serial_port_status(serial_port):
 
-    # Check if g_serial_port is defined
+    # Check if serial_port is defined
     # Implying that open_serial_com was called
-    try: g_serial_port
-    except NameError: 
-       return False
+    if serial_port is None:
+        return False
     
-    return g_serial_port.isOpen()
+    # Variable is valid
+    else:
+        return serial_port.isOpen()

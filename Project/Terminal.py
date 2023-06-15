@@ -1,541 +1,564 @@
 '''Generic Modules'''
-import tkinter                       # Import tkinter library used to generate GUI
-from tkinter import *                # Import tkinter modules used to generate GUI
+from tkinter import *      # Import tkinter modules used to generate GUI
 
-from serial.serialutil import STOPBITS_ONE_POINT_FIVE       
-import serial.tools.list_ports as port_list # Import function to list serial ports.
-
-from datetime import datetime   # Import system date library
-import threading                # Imports python threading module
+import json     # Import json module
+import os       # For directory manipulation
 
 '''Custom Modules'''
-import sercomm      # custom library built to handle communication
-import settings_ui  # custom library built to manage the settings window 
-import ui_objects   # custom library built to handle common UI objects
-import csvlogger    # custom library for logging data to .csv file
+import objects_ui           # custom library built to handle common UI objects
+import tabs_ui              # custom library built to handle tabs
 
 '''
 Global Variables
 '''
-global g_terminate_event    # Object is used to sync receive thread with main loop
-global g_receive_thread     # Object is assigned the receive thread handle on initialisation
+g_tab_list = []         # Stores all the tabs currently active
+g_curr_tab_index = 0    # Stores current index of created tab names
 
+settings_dir_path = ".settings"   # Saves the folder and file to store settings in
+theme_file_path = settings_dir_path + "/theme.json" # Theme settings
+config_file_path = settings_dir_path + "/config.json"   # Tab configuration settings
+
+default_theme = "superhero" # Sets the default theme to startup with
 
 '''
-Function Description: Updates message data types based on 
-the current selected data type in drop down menu of terminal
-
-Paramete: msg - string to be converted into string of new data type
-
-Return: New message string
+Functions for New / Edit tab window
 '''
-def update_msg_datatype(msg):
+
+'''
+Function Description: Called when user confirms new name of tab
+in the tab name window by clicking confirm button
+
+Parameters: tab_window - Container for confirm button
+new_tab_name - Tab name written into text box
+
+Return: None
+'''
+def confirm_tabname(tab_window, new_tab_name : str, event=None):
+
+    global g_tab_name       # Tracks current tab name
+    global g_add_tab_flag   # Tracks if new tab is to be added or not
+
+    # Update global tab name
+    g_tab_name = new_tab_name
+
+    # Set confirm tab flag
+    g_add_tab_flag = TRUE
+
+    # Close the window
+    tab_window.destroy()
+
+    return
+
+'''
+Function Description: Creates a new window designed to
+store a new tab name to either create a new tab or edit
+a current tab
+
+Parameters: default_tabname - Name to be written into textbox 
+by default when the window is created
+
+Return: New window
+'''
+def tabname_window(default_tabname : str):
+
+    global g_tab_name       # Tracks current tab name
+    global g_add_tab_flag   # Tracks if new tab is to be added or not
     
-    print_msg = ''
+    # Update global tab name variable
+    g_tab_name = default_tabname
+    # Reset create new tab flag
+    g_add_tab_flag = FALSE
 
-    # Change data format based on drop down menu selection
-    match data_types_dd.get():
-        case "STRING":
-            print_msg = msg    
-            
-        case "ASCII":
-            for i in msg:
-                print_msg += str(ord(i)) + ' '
-           
-        case "HEX":
-            for i in msg:
-                print_msg += str(hex(ord(i))[2:]) + ' '
-            
-        case _:
-            return False
+    # Create new window over the main window
+    tab_window = Toplevel()
+    #tab_window.geometry("400x100")
+    tab_window.resizable(width=False, height=False)
+    tab_window.title("New Tab")
+
+    # Disabled access to main terminal window
+    tab_window.grab_set()
+    # Change focus to new window
+    tab_window.focus()
+    # Install window close routine
+    tab_window.protocol("WM_DELETE_WINDOW",tab_window.destroy)
+
+    # Create new frames
+    frame0 = objects_ui.define_frame(tab_window, 0, 0)
+    frame0.grid(sticky=NW)
+    frame1 = objects_ui.define_frame(tab_window, 0, 1)
+    frame1.grid(sticky=NW)
+
+    # Create a text box to add the name into. Automatically has default name
+    tab_name_textbox = objects_ui.define_entry_textbox(frame0, 0, 0, 30)
+    tab_name_textbox.grid(sticky=NSEW)
+    tab_name_textbox.configure(font=('Times New Roman',11))
+    tab_name_textbox.insert(0, g_tab_name)
+    tab_name_textbox.focus()
+    tab_name_textbox.selection_range(0, END)
+
+    # Create buttons to confirm or cancel
+    confirm_button = objects_ui.define_button(frame1, 0, 1, "Confirm",
+                               lambda: confirm_tabname(tab_window, tab_name_textbox.get()), 'normal')
+    confirm_button.grid(sticky=E)
+
+    cancel_button = objects_ui.define_button(frame1, 1, 1, "Cancel",
+                                tab_window.destroy, 'normal')
+    cancel_button.grid(sticky=E)
+
+    # Bind enter key to confirm button by default
+    tab_window.bind("<Return>", lambda event = None: confirm_button.invoke())
     
-    return print_msg
+    # Bind escape key to close window
+    tab_window.bind("<Escape>", lambda event = None: cancel_button.invoke())
+
+    return tab_window
 
 
 '''
-Function Description: Function to be called as separate thread. Receives data
-from serial port, logs if required, converts to selected display format
-and prints to terminal. Checks if a read timeout has occurred and 
-appends new lines + timestamp if required.
-
-Parameters: void
-
-Return: True - Successful / False - Failure
+Menu Bar Functions
 '''
-def receive_thread():
-
-    # Flag to track if a read timeout has occurred
-    serial_timout_occurred = False
-    # Initialise log_msg variable
-    log_msg = ''    
-
-    # Maintain the thread until the terminate event flag is set
-    # flag is set when the user attempts to close the window and
-    # terminate the program or to change settings of the serial port
-    while not g_terminate_event.is_set():
-        # Get data from serial port
-        # Convert to string from bytes
-        msg = (sercomm.read_serial_com()).decode("UTF-8")
-        # If length of msg is 0, a timeout has occurred with no data received
-        if len(msg) == 0:
-            serial_timout_occurred = True
-            continue
-
-        # Time stamp when data was received
-        logtime = datetime.now().strftime('%H:%M:%S.%f')[:-3]
-
-        # Update message data type for printing based on drop down
-        msg = update_msg_datatype(msg)
-        
-        # Check if a timeout has occurred, print to new line
-        if serial_timout_occurred == True:
-
-            #Check if timestamp is required. Append to message
-            if (timestamp_flag.get() == True):
-                print_to_terminal('\n' + logtime + " :\t\tRX: " + msg)
-
-            else:
-                print_to_terminal('\n' + "RX: " + msg)
-
-            # Log data if required. Check that empty messages dont get logged
-            curr_sercom_settings = settings_ui.get_sercomm_settings()
-            if ((curr_sercom_settings.logfile != None) & (log_msg != '')):
-                # Write to file
-                csvlogger.write_row_csv([logtime,"RX",log_msg])    
-
-                # Reset log_msg
-                log_msg = ''
-
-            # Reset timeout flag
-            serial_timout_occurred = False
-
-        else:
-            
-            # Print to terminal. If no timeout occurs, then
-            # messages should be written to same line
-            print_to_terminal(msg)           
-            log_msg += msg
-            
-    return True
-
 
 '''
-Function Description: Prints string to globally defined scroll terminal object
-Auto scrolls to end of the box if user scrolls down. Else stays at same position.
+Function Description: Creates a new tab and appends it to notebook
+and global tab array. Changes focus to new tab
 
-Parameters: msg - string to print to terminal 
+Parameters: None
 
-Return: void
+Return: None
 '''
-def print_to_terminal(msg):
+def create_tab():
 
-    # Enable editing of text box
-    terminal_box.config(state="normal")
+    # Create new instance of tab class
+    new_tab = tabs_ui.terminal_tab(window, terminal_notebook, g_tab_name)
 
-    terminal_box.insert(END, msg)
-    
-    # Check if user is looking at previous printed data
-    # If not, autoscroll to latest data, else maintain 
-    # current y position
-    if terminal_box.yview()[1] >= 0.9:  
-        # Reset position index to have messages scroll down
-        terminal_box.see('end')
+    # Add to notebook
+    terminal_notebook.add(new_tab.tab_frame, text=g_tab_name)
 
-    # Disable editing of text box
-    terminal_box.config(state="disabled")
+    # Add this tab to the global list tracking tabs
+    g_tab_list.append(new_tab)
+
+    # Change focus to new tab
+    terminal_notebook.select((new_tab.tab_frame))
+
+    return
+
+'''
+Function Description: Creates an instance of terminal_tab class
+and adds it to the notebook
+
+Parameters: None
+
+Return: tab object
+'''
+def add_tab():
+
+    global g_curr_tab_index     # Stores current index of created tab names
+
+    # Increment index and append to name for new tab
+    g_curr_tab_index += 1
+    default_tab_name = "Tab" + str(g_curr_tab_index)
+
+    # Create window to change tab name
+    tab_window = tabname_window(default_tab_name)
+
+    # Wait for the tab name window to close
+    window.wait_window(tab_window)
+
+    # Check if confirm button was pressed or if cancel was pressed
+    if g_add_tab_flag == TRUE:
+        create_tab()
+
     return
 
 
 '''
-Function Description: Closes come port, file pointer
-to log file (If open) and program.
-Ensures recieve_thread terminate gracefully
+Function Description:  Deletes the tab from the notebook
+
+Parameters: None
+
+Return: None
+'''
+def delete_tab():
+    
+    # Return current selected tab
+    tab = g_tab_list[terminal_notebook.index(terminal_notebook.select())]
+
+    # Close the tab
+    tab.close_tab()
+
+    # Remove from global list of tabs
+    g_tab_list.remove(tab)
+
+    # Remove from notebook
+    terminal_notebook.forget(tab.tab_frame)
+
+    return
+
+'''
+Function Description: Edit the current tab name
+
+Parameters: None
+
+Return: None
+'''
+def edit_tabname():
+
+    # Get current tab index
+    curr_tab_index = terminal_notebook.index("current")
+
+    # Get current tab name
+    curr_tabname = terminal_notebook.tab(terminal_notebook.select(), "text")
+
+    # Create window to change tab name
+    tab_window = tabname_window(curr_tabname)
+
+    # Wait for the tab name window to close
+    window.wait_window(tab_window)
+
+    # Modify name of tab in notebook
+    terminal_notebook.tab(curr_tab_index, text=g_tab_name)
+
+    # Modify name in tab object
+    g_tab_list[curr_tab_index].name = g_tab_name
+    
+    return
+
+'''
+Function Description: Create a custom menu bar with options
+
+Parameters: None
+
+Return: Instance of menubar
+'''
+def create_menubar():
+
+    # Create a new menu bar
+    menu_bar = Menu(window)
+    window.config(menu=menu_bar)
+
+    # Create sub menus
+    tab_menu = Menu(menu_bar)
+    theme_menu = Menu(menu_bar)
+    
+    # Label sub menus and assign commands
+    menu_bar.add_cascade(label="Tab", menu=tab_menu)
+    tab_menu.add_command(label="Add Tab", command=lambda: add_tab())
+    tab_menu.add_command(label="Edit Tab Name", command=lambda: edit_tabname())
+    tab_menu.add_command(label="Remove Tab", command=lambda: delete_tab())
+    tab_menu.add_command(label="Clear Settings", command=lambda: clear_settings())
+
+    menu_bar.add_cascade(label="Theme", menu=theme_menu)
+    theme_menu.add_command(label="Default", command=lambda: set_theme(default_theme))
+    theme_menu.add_command(label="Dark", command=lambda: set_theme("darkly"))
+    theme_menu.add_command(label="Light", command=lambda: set_theme("journal"))
+
+    return menu_bar
+
+
+'''
+Function Description: Terminates window, saves configruations
+and closes all tabs
 
 Parameters: void
 
 Return: void
 '''
 def close_window():
-    
-    # Check if the receive thread was started
-    try: g_receive_thread
-    # If not, directly terminate program
-    # else terminate the thread and then the program 
-    except NameError:
-        pass
-    # Terminate receive thread, then terminate program
-    else:
-        # Set terminate flag for receive thread
-        g_terminate_event.set()
 
-        # Cancel any pending read
-        sercomm.abort_serial_read()
+    # Save tab configuration
+    save_tabs()
 
-        # wait till receive thread is terminated
-        g_receive_thread.join()
-
-    # Close the com port
-    sercomm.close_serial_com()
-
-    # Close file pointer for logger
-    csvlogger.close_csv()
+    # Loop through all tabs and close each one
+    for i in range(len(g_tab_list)):
+        g_tab_list[i].close_tab()
 
     # Terminate window
     window.destroy()
     return
 
+'''
+Tab configuration Functions
+'''
 
 '''
-Function Description: Clears scroll terminal screen
+Function Description: Save the provided dictionary
+to a json file. Create a new file if non existent
 
-Parameters: void 
+Parameters: data - Dictionary to save
 
-Return: void
+Return: None
 '''
-def clear_button_pressed():
-
-    # Enable editing of text box
-    terminal_box.config(state="normal")
-    # Delete all text in display
-    terminal_box.delete("1.0",END)
-    # Disable editing of text box
-    terminal_box.config(state="disabled")
-    return
-
-
-'''
-Function Description: Transmits data in transmit text box
-to com port. Clears the send text box
-
-Parameters: void 
-
-Return: void
-'''
-def send_button_pressed(event=None):
-
-    # Read message to transmit from textbox
-    transmit_msg = send_message_textbox.get()
-
-    # If Carriage return check box is selected, append \r
-    if include_carriage_return_flag.get() == True:
-        transmit_msg += '\r'
-
-    # If Next line check box is selected, append \n
-    if include_new_line_flag.get() == True:
-        transmit_msg += '\n'
-
-    # Check is msg is empty
-    if transmit_msg == '':
-        return False
+def save_config(data):
     
-    # Transmit
-    sercomm.write_serial_com(transmit_msg)
+    # Check if the settings hidden folder exists
+    if os.path.isdir(settings_dir_path) == FALSE:
+        # Create it if it doesnt exist
+        os.mkdir(settings_dir_path)
 
-    # If echo_enable flag is set
-    if echo_enable_flag.get() == True:
-        
-        # Time stamp when data was received
-        logtime = datetime.now().strftime('%H:%M:%S.%f')[:-3]
-
-        # Update message data type for printing based on drop down
-        print_msg = update_msg_datatype(transmit_msg)
-        # Remove the \r and \n characters when printing to terminal and logging
-        print_msg = print_msg.strip('\r\n')
-
-        #Check if timestamp is required. Append to message
-        if (timestamp_flag.get() == True):
-            print_to_terminal('\n' + logtime + " :\t\tTX: " + print_msg)
-
-        else:
-            print_to_terminal('\n' + "TX: " + print_msg)
-
-        # Log data if required. Check that empty messages dont get logged
-        curr_sercom_settings = settings_ui.get_sercomm_settings()
-        if ((curr_sercom_settings.logfile != None) & (print_msg != '')):
-            if echo_enable_flag.get() == True:
-                csvlogger.write_row_csv([logtime,"TX",print_msg])    
-            else:
-                # Write to .csv file
-                csvlogger.write_row_csv([logtime,print_msg])
-
-    # Delete all text in display
-    send_message_textbox.delete("0",END)
+    # Write to file
+    with open(config_file_path, 'w') as json_file:
+        json.dump(data, json_file)
 
     return
 
-
 '''
-Function Description: Opens selected com port
-from drop down menu. Creates receive thread if
-com port opened successfully. Modifies UI to
-represent opened com port.
+Function Description: Load a dictionary of data
+from a json file. Create a json file with
+default data if non existent
 
-Parameters: void 
+Parameters: None
 
-Return: com port name on Success / False on Failure
+Return: data - dictionary data
 '''
-def open_com_port():
+def load_config():
 
-    # Ensure a com port was selected
-    if com_ports_menu.get() == '':
-        print_to_terminal("No COM port selected!\n")
-        return False
+    # Check if the settings hidden folder exists
+    if os.path.isdir(settings_dir_path) == FALSE:
+        # Create it if it doesnt exist
+        os.mkdir(settings_dir_path)
+
+    # Check if the config json file exists
+    if os.path.isfile(config_file_path):
+        # If yes, open and read it into a dictionary
+        with open(config_file_path, 'r') as f:
+            data = json.load(f)
     
-    # Extract com port name from drop down string
-    com_port = com_ports_menu.get().split()[0]
-    #com_port = "COM8"
-
-    # Get a copy of com port settings
-    sercomm_settings = settings_ui.get_sercomm_settings()
-
-    # Open port
-    status = sercomm.open_serial_com(com_port, sercomm_settings.baud, 
-                                        sercomm_settings.bytesize, sercomm_settings.readtimeout,
-                                        sercomm_settings.stopbits, sercomm_settings.paritybits)
-
-    #Check return value
-    if status == False:
-        print_to_terminal(com_port + " is busy. Unable to open\n")
-        return False
-
-    # Print COM port opened successfully.
-    print_to_terminal(com_port + " opened successfully\n")
-
-    # Disable open com port button
-    open_com_button['state'] = 'disabled'
-
-    # Enable send message textbox
-    send_message_textbox['state'] = 'normal'
-
-    # Enable send message button
-    send_button['state'] = 'active'
-
-    # Disable settings button
-    settings_button['state'] = 'normal'
-
-    # Disable drop down menu for com ports
-    com_ports_menu['state'] = 'disabled'
-
-    # Set current com port variable in com settings struct
-    settings_ui.set_com_port(com_port)
-
-    # Create an event variable to sync termination of the main loop and receive thread
-    global g_terminate_event
-    g_terminate_event = threading.Event()
-
-    # Create receive thread to print to terminal
-    global g_receive_thread
-    g_receive_thread = threading.Thread(target=receive_thread)
-    g_receive_thread.start()
-
-    return com_port
-
-
-'''
-Function Description: Terminates the receive thread and calls
-function to open the serial settings window. Waits for settings 
-window to close, checks if serial port is open and creates a new
-receive thread. If not open, disables operations until same or
-another port is opened by the user.
-
-Parameters: void
-
-Return: True on Success / False on Failure
-'''
-def open_settings_window():
-
-    # Terminate receive thread 
-    # to prevent a read operation while
-    # the user closes and reopens the 
-    # serial port with new settings
-
-    # Set terminate flag for receive thread
-    global g_terminate_event
-    g_terminate_event.set()
-
-    # Abort any read operation
-    sercomm.abort_serial_read()
-
-    # Wait till receive thread is terminated
-    global g_receive_thread
-    g_receive_thread.join()
-
-    # Call open settings window function
-    settings_window = settings_ui.define_sercomm_settings_window()
-    
-    # Wait for the settings window to close
-    window.wait_window(settings_window)
-
-    # Get a copy of settings
-    settings = settings_ui.get_sercomm_settings()
-    # Perform a theme change if required
-    window.style.theme_use(settings.term_theme)
-
-    # Ensure serial port is open successfully
-    if sercomm.check_serial_port_status() == True:
-
-        # Once settings are confirmed, 
-        # Clear terminate_event flag and start receive thread again
-        g_terminate_event.clear()
-
-        g_receive_thread = threading.Thread(target=receive_thread)
-        g_receive_thread.start()
-
     else:
-        print_to_terminal("Port is busy. Unable to open\n")
+        # If not, create one and set the default tab configurations
+        data = {
+                "tab_index" : 0,
+                "tab_names" : ["Tab0"]
+                }
+        # Save default dictionary to json file
+        save_config(data)
 
-        # Return UI to original state so user can retry
-        # opening the port or select a new port
+    return data
 
-        # Enable open com port button
-        open_com_button['state'] = 'normal'
+'''
+Function Description: Save current configuration of tabs
 
-        # Disable send message textbox
-        send_message_textbox['state'] = 'disabled'
+Parameters: None
 
-        # Disable send message button
-        send_button['state'] = 'disabled'
+Return: None
+'''
+def save_tabs():
 
-        # Disable settings button
-        settings_button['state'] = 'disabled'
+    # Save a list of all active tab names
+    tab_name = list()
+    for i in range(len(g_tab_list)):
+        tab_name.append(g_tab_list[i].name)
 
-        return False
+    # Create a dictionary with current tab index and names
+    data = {
+            "tab_index" : g_curr_tab_index,
+            "tab_names"  : tab_name
+    }
 
-    return True
+    # Save to json file
+    save_config(data)
+
+    return
+
+'''
+Function Description: Create tabs based on previous session
+configuration data
+
+Parameters: None
+
+Return: None
+'''
+def setup_tabs():
+
+    # Load tab index and names from json file
+    data = load_config()
+
+    # Set global tab index. Used to number future tabs
+    global g_curr_tab_index
+    g_curr_tab_index = data.get("tab_index")
+
+    # Get list of tab names
+    tab_names = list()
+    tab_names = data.get("tab_names")
+
+    global g_tab_name
+    # For every tab name in list, create a new tab
+    for i in range(len(tab_names)):
+        g_tab_name = tab_names[i]
+        create_tab()
+
+    return
+
+'''
+Theme Functions
+'''
+
+'''
+Function Description: Saves current theme to json file
+
+Parameters: theme - string with theme name
+
+Return: None
+'''
+def save_theme(theme: str):
+
+    # Check if the settings hidden folder exists
+    if os.path.isdir(settings_dir_path) == FALSE:
+        # Create it if it doesnt exist
+        os.mkdir(settings_dir_path)
+
+    # Write to file
+    with open(theme_file_path, 'w') as json_file:
+        json.dump({"theme":theme}, json_file)
     
+    return
 
+'''
+Function Description: Load theme from json file
+
+Parameters: None
+
+Return: None
+'''
+def load_theme():
+
+    # Check if the theme hidden folder exists
+    if os.path.isdir(settings_dir_path) == FALSE:
+        # Create it if it doesnt exist
+        os.mkdir(settings_dir_path)
+
+    # Check if the theme json file exists
+    if os.path.isfile(theme_file_path):
+        # If yes, open and read it
+        with open(theme_file_path, 'r') as f:
+            data = json.load(f)
+            saved_theme = data.get("theme")
+    else:
+        # If not, create one and set the default theme
+        saved_theme = default_theme
+        save_theme(saved_theme)
+
+    return saved_theme
+
+'''
+Function Description: Sets the theme of curretn session
+based on given parameter or theme json file
+
+Parameters: term_theme - Theme name
+
+Return: None
+'''
+def set_theme(term_theme = None):
+
+    if term_theme == None:
+        # Load theme from the saved file
+        term_theme = load_theme()
+
+    # Perform a theme change if required
+    window.style.theme_use(term_theme)   
+
+    # Save the latest set theme
+    save_theme(term_theme)
+
+    return
+
+'''
+Function Description: Clears the current theme 
+to the default theme
+
+Parameters: None
+
+Return: None
+'''
+def clear_settings():
+
+    global g_tab_name       # Tracks current tab name
+    global g_curr_tab_index # Tracks index of created tabs
+    
+    # Delete all tabs
+    for i in range(len(g_tab_list)):
+        delete_tab()
+
+    # Reset global tab index and tab name
+    g_curr_tab_index = 0
+    g_tab_name = "Tab0"
+
+    # Create a new tab
+    create_tab()
+
+    # Set theme to default
+    set_theme(default_theme)
+    
+    return
+
+'''
+Function Description: Changes enter key binding and focus to 
+widgets in current tab
+
+Parameters: None
+
+Return: None
+'''
+def set_widget_focus():
+
+    # Check that there is at least 1 active tab open
+    if len(g_tab_list) == 0:
+        return
+
+    # terminal_notebook.select() returns handle of current tab frame
+    # terminal_notebook.index() returns an index number of the handle
+    # Index number corresponds to its position int he g_tab_list global array of tabs
+    # Current tab
+    curr_tab = g_tab_list[terminal_notebook.index(terminal_notebook.select())]
+
+    # Binds the enter key to send button of the current tab
+    window.bind("<Return>", lambda event=None: tabs_ui.terminal_tab.
+                send_button_pressed(curr_tab))
+
+    # Changes focus to the send message box of the current tab
+    curr_tab.terminal_box.focus()
+
+    return
 
 '''
 Frame Definitions
 '''
 # Generate GUI window
-window = ui_objects.define_window("superhero")
+window = objects_ui.define_window(default_theme)
 # Define window size
-window.geometry('1000x500')
+window.geometry('1470x600')
 # Set title for window
 window.title("Sheep-Term")
-# Create Display Configure Frame for checkbox and drop down options
-config_frame = ui_objects.define_frame(window, 0, 1)
-config_frame.grid(sticky=NW)
-# Create COM Frame for COM port settings
-com_frame = ui_objects.define_frame(window,0,0)
-com_frame.grid(sticky=NW)
-# Create a Terminal frame to display actual data
-display_frame = ui_objects.define_frame(window,1,1)
-display_frame.grid(sticky=NSEW)
-# Create a boundary frame for the bottom
-south_boundary_frame = ui_objects.define_frame(window,0,2)
-south_boundary_frame.grid(sticky=NSEW)
 #Ensure display frame expands with window
-window.columnconfigure(1, weight=1)
-window.rowconfigure(1, weight=1)
+window.columnconfigure(0, weight=1)
+window.rowconfigure(0, weight=1)
 
+# Create the notebook for the terminal frame
+terminal_notebook = objects_ui.define_notebook(window)
+terminal_notebook.grid(sticky=NSEW)
 
-''' 
-Variable Definitions
-'''
-# Tracks if user enabled timestamping of data on terminal
-timestamp_flag = tkinter.BooleanVar() 
-# Tracks if user enabled NL to be appended to data sent
-include_new_line_flag = tkinter.BooleanVar()
-# Tracks if user enabled CR to be appended to data sent
-include_carriage_return_flag = tkinter.BooleanVar()
-# Tracks if user wants to echo the transmitted message on terminal
-echo_enable_flag = tkinter.BooleanVar()
+# Create a menu Bar
+menu_bar = create_menubar()
 
+# Set previously saved theme
+set_theme()
 
-'''
-Define COMM frame UI objects
-'''
-# Define a label for com port to be placed near text box
-com_port_label = ui_objects.define_label(com_frame, 0, 0, "COM PORT")
-# List all the available serial ports
-com_ports_available = list(port_list.comports())
-# Remove unusable com port options
-# (NULL appended com port names seem to appear. Possibly due to using
-#  virtual com ports?)
-for item in com_ports_available:
-    print(item)
-    if str(item)[0:5] == "NULL_":
-        com_ports_available.remove(item)
+# Setup tab configuration
+setup_tabs()
 
-# Define the drop down menu for com ports
-com_ports_menu = ui_objects.define_drop_down(com_frame, 1, 0, com_ports_available, 'readonly')
-# Define Set COM port button
-open_com_button = ui_objects.define_button(com_frame, 2, 0, "Open Port", open_com_port, 'normal')
-# Define a settings button for sercomm settings
-settings_button = ui_objects.define_button(com_frame, 3, 0, "Settings", 
-                                open_settings_window, 'disabled')
+# Bind Enter key to send button of default tab
+window.bind("<Return>", lambda event=None: tabs_ui.terminal_tab.send_button_pressed(g_tab_list[0]))
 
+# Re-bind enter key to button of new tab in focus using a function called on tab change
+terminal_notebook.bind("<<NotebookTabChanged>>", lambda event=None: set_widget_focus())
 
-'''
-Define config frame UI objects
-'''
-# Define a label for data type drop down
-display_type_label = ui_objects.define_label(config_frame, 0, 0, "Display Type")
-display_type_label.grid(sticky=W)
-#Create a show timestamp checkbox
-timestamp_checkbox = ui_objects.define_checkbox(config_frame, 0, 2, "Show Timestamp", 
-                       timestamp_flag, None, 'normal', 'round-toggle')
-timestamp_checkbox.grid(sticky=W)
-#Generate list of data types
-data_types = ["STRING","ASCII","HEX"]
-#Create a drop down menu with different datatypes to represent on terminal
-data_types_dd = ui_objects.define_drop_down(config_frame, 1,0, data_types, 'readonly')
-data_types_dd.grid(sticky=W)
-#Set default value of drop down menu
-data_types_dd.current(0)      
-#Create an include next line character checkbox
-include_new_line_checkbox = ui_objects.define_checkbox(config_frame, 0, 3, "Include New Line Character",
-                                        include_new_line_flag, None, "normal", 'round-toggle')
-include_new_line_checkbox.grid(sticky=W)
-#Create an include carriage return character checkbox
-include_carriage_return_checkbox = ui_objects.define_checkbox(config_frame, 0, 4, "Include Carriage Return Character",
-                                        include_carriage_return_flag, None, "normal", 'round-toggle')
-include_carriage_return_checkbox.grid(sticky=W)
-#Create a echo checkbox
-echo_checkbox = ui_objects.define_checkbox(config_frame, 0, 5, "Enable Echo",
-                                        echo_enable_flag, None, "normal", 'round-toggle')
-echo_checkbox.grid(sticky=W)
+# Change icon of the window
+window.iconbitmap("ShaunTheSheep.ico")
 
-
-'''
-Define Terminal frame UI objects
-'''
-# Create a scroll text box for the terminal
-terminal_box = ui_objects.define_scroll_textbox(display_frame, 0, 0, 50, 20)
-terminal_box.grid(sticky=NSEW)
-terminal_box.configure(font=('Times New Roman',13))
-# Create a text box to get the transmit message from user
-send_message_textbox = ui_objects.define_entry_textbox(display_frame, 0, 1, 47, 'disabled')
-send_message_textbox.grid(sticky=NSEW)
-send_message_textbox.configure(font=('Times New Roman',13))
-# Create a button to send data on selected port
-send_button = ui_objects.define_button(display_frame, 1, 1, "Send",
-                     send_button_pressed, 'disabled')
-send_button.grid(sticky=NSEW, padx=5, pady=5)
-# Bind Enter key to send button
-window.bind('<Return>', send_button_pressed)
-# Create a clear terminal display button
-clear_button = ui_objects.define_button(display_frame, 1, 0, "Clear", clear_button_pressed, 'normal')
-clear_button.grid(sticky=SE, padx=5, pady=5)
-# Ensure the terminal box expands with the frame
-display_frame.columnconfigure(0, weight=1)
-display_frame.rowconfigure(0, weight=1)
-
-
-'''
-Define Empty frame UI objects
-'''
-# Define an empty label to act as a spacer for the bottom 
-empty_label = ui_objects.define_label(south_boundary_frame, 0, 0, "")
-empty_label.grid(sticky=NSEW)
-
+# Install window close routine
+window.protocol("WM_DELETE_WINDOW",close_window)
 
 '''
 Main loop
 '''
-# Install window close routine
-window.protocol("WM_DELETE_WINDOW",close_window)
 window.mainloop()
 
