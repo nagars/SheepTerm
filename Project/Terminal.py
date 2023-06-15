@@ -1,35 +1,48 @@
 '''Generic Modules'''
-from tkinter import *                # Import tkinter modules used to generate GUI
+from tkinter import *      # Import tkinter modules used to generate GUI
 
 import json     # Import json module
 import os       # For directory manipulation
 
 '''Custom Modules'''
-import objects_ui   # custom library built to handle common UI objects
-import csvlogger as log    # custom library for logging data to .csv file
-import tabs_ui      # custom library built to handle tabs
+import objects_ui           # custom library built to handle common UI objects
+import csvlogger as log     # custom library for logging data to .csv file
+import tabs_ui              # custom library built to handle tabs
 
 '''
 Global Variables
 '''
-g_tab_list = []    # Store all the tabs currently active
-g_curr_tab_index = 0
+g_tab_list = []         # Stores all the tabs currently active
+g_curr_tab_index = 0    # Stores current index of created tab names
 
 settings_dir_path = ".settings"   # Saves the folder and file to store settings in
 theme_file_path = settings_dir_path + "/theme.json" # Theme settings
 config_file_path = settings_dir_path + "/config.json"   # Tab configuration settings
 
-default_theme = "superhero"
+default_theme = "superhero" # Sets the default theme to startup with
 
+'''
+Functions for New / Edit tab window
+'''
 
+'''
+Function Description: Called when user confirms new name of tab
+in the tab name window by clicking confirm button
+
+Parameters: tab_window - Container for confirm button
+new_tab_name - Tab name written into text box
+
+Return: None
+'''
 def confirm_tabname(tab_window, new_tab_name, event=None):
 
+    global g_tab_name       # Tracks current tab name
+    global g_add_tab_flag   # Tracks if new tab is to be added or not
+
     # Update global tab name
-    global g_tab_name
     g_tab_name = new_tab_name
 
     # Set confirm tab flag
-    global g_add_tab_flag
     g_add_tab_flag = TRUE
 
     # Close the window
@@ -37,12 +50,24 @@ def confirm_tabname(tab_window, new_tab_name, event=None):
 
     return
 
-def create_tabname_window(default_tabname : str):
+'''
+Function Description: Creates a new window designed to
+store a new tab name to either create a new tab or edit
+a current tab
 
-    global g_tab_name
+Parameters: default_tabname - Name to be written into textbox 
+by default when the window is created
+
+Return: New window
+'''
+def tabname_window(default_tabname : str):
+
+    global g_tab_name       # Tracks current tab name
+    global g_add_tab_flag   # Tracks if new tab is to be added or not
+    
+    # Update global tab name variable
     g_tab_name = default_tabname
-
-    global g_add_tab_flag
+    # Reset create new tab flag
     g_add_tab_flag = FALSE
 
     # Create new window over the main window
@@ -50,10 +75,10 @@ def create_tabname_window(default_tabname : str):
     #tab_window.geometry("400x100")
     tab_window.resizable(width=False, height=False)
     tab_window.title("New Tab")
-    #window.eval(f'tk::PlaceWindow {str(tab_window)} center')
 
     # Disabled access to main terminal window
     tab_window.grab_set()
+    # Change focus to new window
     tab_window.focus()
     # Install window close routine
     tab_window.protocol("WM_DELETE_WINDOW",tab_window.destroy)
@@ -64,7 +89,7 @@ def create_tabname_window(default_tabname : str):
     frame1 = objects_ui.define_frame(tab_window, 0, 1)
     frame1.grid(sticky=NW)
 
-    # Create a text box to add the name into. Autmatically has default name
+    # Create a text box to add the name into. Automatically has default name
     tab_name_textbox = objects_ui.define_entry_textbox(frame0, 0, 0, 30)
     tab_name_textbox.grid(sticky=NSEW)
     tab_name_textbox.configure(font=('Times New Roman',11))
@@ -94,6 +119,14 @@ def create_tabname_window(default_tabname : str):
 Menu Bar Functions
 '''
 
+'''
+Function Description: Creates a new tab and appends it to notebook
+and global tab array. Changes focus to new tab
+
+Parameters: None
+
+Return: None
+'''
 def create_tab():
 
     # Create new instance of tab class
@@ -114,26 +147,26 @@ def create_tab():
 Function Description: Creates an instance of terminal_tab class
 and adds it to the notebook
 
-Parameters: notebook - Notebook to add tab too
+Parameters: None
 
 Return: tab object
 '''
 def add_tab():
 
-    # Append index to name
-    global g_curr_tab_index
+    global g_curr_tab_index     # Stores current index of created tab names
+
+    # Increment index and append to name for new tab
     g_curr_tab_index += 1
     default_tab_name = "Tab" + str(g_curr_tab_index)
 
     # Create window to change tab name
-    tab_window = create_tabname_window(default_tab_name)
+    tab_window = tabname_window(default_tab_name)
 
     # Wait for the tab name window to close
     window.wait_window(tab_window)
 
     # Check if confirm button was pressed or if cancel was pressed
     if g_add_tab_flag == TRUE:
-    
         create_tab()
 
     return
@@ -142,14 +175,13 @@ def add_tab():
 '''
 Function Description:  Deletes the tab from the notebook
 
-Parameters: notebook - Notebook to delete tab from
-            tab - terminal_tab to remove 
+Parameters: None
 
-Return: void
+Return: None
 '''
 def delete_tab():
     
-    # Return current tab
+    # Return current selected tab
     tab = g_tab_list[terminal_notebook.index(terminal_notebook.select())]
 
     # Close the tab
@@ -158,11 +190,18 @@ def delete_tab():
     # Remove from global list of tabs
     g_tab_list.remove(tab)
 
-    # Remove to notebook
+    # Remove from notebook
     terminal_notebook.forget(tab.tab_frame)
 
     return
 
+'''
+Function Description: Edit the current tab name
+
+Parameters: None
+
+Return: None
+'''
 def edit_tabname():
 
     # Get current tab index
@@ -172,12 +211,12 @@ def edit_tabname():
     curr_tabname = terminal_notebook.tab(terminal_notebook.select(), "text")
 
     # Create window to change tab name
-    tab_window = create_tabname_window(curr_tabname)
+    tab_window = tabname_window(curr_tabname)
 
     # Wait for the tab name window to close
     window.wait_window(tab_window)
 
-    # Modify name of tab
+    # Modify name of tab in notebook
     terminal_notebook.tab(curr_tab_index, text=g_tab_name)
 
     # Modify name in tab object
@@ -188,18 +227,21 @@ def edit_tabname():
 '''
 Function Description: Create a custom menu bar with options
 
-Parameters: container - Window to generate menu for
+Parameters: None
 
 Return: Instance of menubar
 '''
 def create_menubar():
 
+    # Create a new menu bar
     menu_bar = Menu(window)
     window.config(menu=menu_bar)
 
+    # Create sub menus
     tab_menu = Menu(menu_bar)
     theme_menu = Menu(menu_bar)
     
+    # Label sub menus and assign commands
     menu_bar.add_cascade(label="Tab", menu=tab_menu)
     tab_menu.add_command(label="Add Tab", command=lambda: add_tab())
     tab_menu.add_command(label="Edit Tab Name", command=lambda: edit_tabname())
@@ -215,7 +257,8 @@ def create_menubar():
 
 
 '''
-Function Description: Terminates window and all tabs
+Function Description: Terminates window, saves configruations
+and closes all tabs
 
 Parameters: void
 
@@ -237,6 +280,15 @@ def close_window():
 '''
 Tab configuration Functions
 '''
+
+'''
+Function Description: Save the provided dictionary
+to a json file. Create a new file if non existent
+
+Parameters: data - Dictionary to save
+
+Return: None
+'''
 def save_config(data):
     
     # Check if the settings hidden folder exists
@@ -250,6 +302,15 @@ def save_config(data):
 
     return
 
+'''
+Function Description: Load a dictionary of data
+from a json file. Create a json file with
+default data if non existent
+
+Parameters: None
+
+Return: data - dictionary data
+'''
 def load_config():
 
     # Check if the settings hidden folder exists
@@ -264,15 +325,23 @@ def load_config():
             data = json.load(f)
     
     else:
-        # If not, create one and set the default theme
+        # If not, create one and set the default tab configurations
         data = {
                 "tab_index" : 0,
                 "tab_names" : ["Tab0"]
                 }
+        # Save default dictionary to json file
         save_config(data)
 
     return data
 
+'''
+Function Description: Save current configuration of tabs
+
+Parameters: None
+
+Return: None
+'''
 def save_tabs():
 
     # Save a list of all active tab names
@@ -291,6 +360,14 @@ def save_tabs():
 
     return
 
+'''
+Function Description: Create tabs based on previous session
+configuration data
+
+Parameters: None
+
+Return: None
+'''
 def setup_tabs():
 
     # Load tab index and names from json file
@@ -315,7 +392,15 @@ def setup_tabs():
 '''
 Theme Functions
 '''
-def save_theme(theme):
+
+'''
+Function Description: Saves current theme to json file
+
+Parameters: theme - string with theme name
+
+Return: None
+'''
+def save_theme(theme: str):
 
     # Check if the settings hidden folder exists
     if os.path.isdir(settings_dir_path) == FALSE:
@@ -328,6 +413,13 @@ def save_theme(theme):
     
     return
 
+'''
+Function Description: Load theme from json file
+
+Parameters: None
+
+Return: None
+'''
 def load_theme():
 
     # Check if the theme hidden folder exists
@@ -348,6 +440,14 @@ def load_theme():
 
     return saved_theme
 
+'''
+Function Description: Sets the theme of curretn session
+based on given parameter or theme json file
+
+Parameters: term_theme - Theme name
+
+Return: None
+'''
 def set_theme(term_theme = None):
 
     if term_theme == None:
@@ -362,16 +462,25 @@ def set_theme(term_theme = None):
 
     return
 
+'''
+Function Description: Clears the current theme 
+to the default theme
+
+Parameters: None
+
+Return: None
+'''
 def clear_settings():
 
+    global g_tab_name       # Tracks current tab name
+    global g_curr_tab_index # Tracks index of created tabs
+    
     # Delete all tabs
     for i in range(len(g_tab_list)):
         delete_tab()
 
     # Reset global tab index and tab name
-    global g_curr_tab_index
     g_curr_tab_index = 0
-    global g_tab_name
     g_tab_name = "Tab0"
 
     # Create a new tab
@@ -382,12 +491,25 @@ def clear_settings():
     
     return
 
+'''
+Function Description: Changes enter key binding and focus to 
+widgets in current tab
+
+Parameters: None
+
+Return: None
+'''
 def set_widget_focus():
 
-    window.bind("<Return>", lambda event=None: tabs_ui.terminal_tab.
-                send_button_pressed(g_tab_list[terminal_notebook.index(terminal_notebook.select())]))
+    # Current tab
+    curr_tab = g_tab_list[terminal_notebook.index(terminal_notebook.select())]
 
-    g_tab_list[terminal_notebook.index(terminal_notebook.select())].terminal_box.focus()
+    # Binds the enter key to send button of the current tab
+    window.bind("<Return>", lambda event=None: tabs_ui.terminal_tab.
+                send_button_pressed(curr_tab))
+
+    # Changes focus to the send message box of the current tab
+    curr_tab.terminal_box.focus()
 
     return
 
@@ -429,10 +551,11 @@ terminal_notebook.bind("<<NotebookTabChanged>>", lambda event=None: set_widget_f
 # Change icon of the window
 window.iconbitmap("ShaunTheSheep.ico")
 
+# Install window close routine
+window.protocol("WM_DELETE_WINDOW",close_window)
+
 '''
 Main loop
 '''
-# Install window close routine
-window.protocol("WM_DELETE_WINDOW",close_window)
 window.mainloop()
 
