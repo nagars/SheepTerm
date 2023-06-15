@@ -17,34 +17,38 @@ import objects_ui   # custom library built to handle common UI objects
 Frame Position values (y,x)
 '''
 com_frame_pos               = 0,0
-com_button_frame_pos        = 1,0
-config_frame_pos            = 0,1
-display_frame_pos           = 1,1
-south_boundary_frame_pos    = 0,2
+config_frame_pos            = 1,0
+display_frame_pos           = 0,1
+display_button_frame_pos    = 0,2
 
 '''
 Widget Position Values (y,x)
 '''
+# Com Frame
 com_port_label_pos          = 0,0
 com_ports_menu_pos          = 1,0
 
+# Config Frame
 open_com_button_pos         = 0,0
 settings_button_pos         = 1,0
-space_label_pos             = 2,0
+
+space_label_pos0            = 2,0
 display_type_label_pos      = 3,0
 data_types_dd_pos           = 4,0
 
-timestamp_checkbox_pos                  = 0,0
-include_new_line_checkbox_pos           = 0,1
-include_carriage_return_checkbox_pos    = 0,2
-echo_checkbox_pos                       = 0,3
+space_label_pos1            = 5,0
+timestamp_checkbox_pos                  = 6,0
+include_new_line_checkbox_pos           = 7,0
+include_carriage_return_checkbox_pos    = 8,0
+echo_checkbox_pos                       = 9,0
 
+# Display Frame
 terminal_box_pos                        = 0,0
 send_message_textbox_pos                = 0,1
-send_button_pos                         = 1,0
-clear_button_pos                        = 1,1
 
-empty_label_pos                         = 0,0
+# Button Frame
+send_button_pos                         = 0,0
+clear_button_pos                        = 1,0
 
 '''
 Classes
@@ -55,7 +59,8 @@ class terminal_tab:
         '''
         Public Objects
         '''
-        self.tab_frame = objects_ui.define_frame(notebook,0,0,NSEW)    # Defines the tab for this class instance
+        self.tab_frame = objects_ui.define_frame(notebook,0,0)    # Defines the tab for this class instance
+        self.tab_frame.grid(sticky=NSEW)
         self.tab_frame.columnconfigure(1, weight=1)
         self.tab_frame.rowconfigure(1, weight=1)
         
@@ -83,29 +88,28 @@ class terminal_tab:
         Define frames of tab
         '''
         # Create COM Frame for COM port settings
-        self.com_frame = objects_ui.define_frame(self.tab_frame,com_frame_pos[0],com_frame_pos[1],NW)
-
-        # Create COM button frame
-        self.com_button_frame = objects_ui.define_frame(self.tab_frame,com_button_frame_pos[0],com_button_frame_pos[1],NW)
+        self.com_frame = objects_ui.define_frame(self.tab_frame,com_frame_pos[0],com_frame_pos[1],NSEW)
 
         # Create Display Configure Frame for checkbox
-        self.config_frame = objects_ui.define_frame(self.tab_frame, config_frame_pos[0], config_frame_pos[1], NW)
-        
+        self.config_frame = objects_ui.define_frame(self.tab_frame, config_frame_pos[0], config_frame_pos[1],NSEW)
+
         # Create a Terminal frame to display actual data
         self.display_frame = objects_ui.define_frame(self.tab_frame,display_frame_pos[0],display_frame_pos[1],NSEW)
+        self.display_frame.grid(columnspan = 3)
         # Ensure the terminal box expands with the frame
         self.display_frame.columnconfigure(0, weight=1)
         self.display_frame.rowconfigure(0, weight=1)
 
         # Create a boundary frame for the bottom
-        self.south_boundary_frame = objects_ui.define_frame(self.tab_frame,south_boundary_frame_pos[0],south_boundary_frame_pos[1],NW)
+        self.display_button_frame = objects_ui.define_frame(self.tab_frame,display_button_frame_pos[0],display_button_frame_pos[1],SE)
+        # Have frame cover 3 frames of space
+        self.display_button_frame.grid(columnspan = 3)
 
         '''
         Define COMM frame UI objects
         '''
         # Define a label for com port to be placed near text box
         self.com_port_label = objects_ui.define_label(self.com_frame, com_port_label_pos[0], com_port_label_pos[1], "Com Port")
-        self.com_port_label.grid(sticky=NW)
 
         # List all the available serial ports
         self.com_ports_available = list(port_list.comports())
@@ -122,63 +126,61 @@ class terminal_tab:
         # Define the drop down menu for com ports
         self.com_ports_menu = objects_ui.define_drop_down(self.com_frame, com_ports_menu_pos[0], com_ports_menu_pos[1], 
                                                           self.com_ports_available, 'readonly')
-        self.com_ports_menu.grid(sticky=NW)
+        # Set width to 20 Characters
+        self.com_ports_menu.config(width=20)
 
         '''
-        Define Comm button frame UI objects
+        Define onfig frame UI objects
         '''
         # Define Set COM port button
-        self.open_com_button = objects_ui.define_button(self.com_button_frame, open_com_button_pos[0], 
+        self.open_com_button = objects_ui.define_button(self.config_frame, open_com_button_pos[0], 
                                             open_com_button_pos[1], "Open Port", lambda: type(self).open_com_port(self), 'normal')
-        self.open_com_button.grid(sticky=NW)
 
         # Define a settings button for sercomm settings
-        self.settings_button = objects_ui.define_button(self.com_button_frame, settings_button_pos[0], 
+        self.settings_button = objects_ui.define_button(self.config_frame, settings_button_pos[0], 
                                             settings_button_pos[1], "Settings", lambda: type(self).open_settings_window(self), 'disabled')
-        self.settings_button.grid(sticky=NW)
 
         # Define a label to act as a spacer
-        self.space_label = objects_ui.define_label(self.com_button_frame, space_label_pos[0], space_label_pos[1], "|")
-        self.space_label.grid(padx = 10, pady = 0, sticky=NW)
-        self.space_label.configure(font=(NONE,15), foreground="#808080")
+        self.space_label0 = objects_ui.define_label(self.config_frame, space_label_pos0[0], space_label_pos0[1], "|")
+        self.space_label0.grid(padx = 10, pady = 0)
+        self.space_label0.configure(font=(NONE,15), foreground="#808080")
 
         # Define a label for data type drop down
-        self.display_type_label = objects_ui.define_label(self.com_button_frame, display_type_label_pos[0], 
+        self.display_type_label = objects_ui.define_label(self.config_frame, display_type_label_pos[0], 
                                                           display_type_label_pos[1], "Display Type")
 
         #Generate list of data types
         self.data_types = ["STRING","ASCII","HEX", "BINARY"]
         #Create a drop down menu with different datatypes to represent on terminal
-        self.data_types_dd = objects_ui.define_drop_down(self.com_button_frame, data_types_dd_pos[0], data_types_dd_pos[1], 
+        self.data_types_dd = objects_ui.define_drop_down(self.config_frame, data_types_dd_pos[0], data_types_dd_pos[1], 
                                                          self.data_types, 'readonly')
-        self.data_types_dd.grid(sticky=NW)
+        # Set width to 7 characters
+        self.data_types_dd.config(width=7)
         #Set default value of drop down menu
         self.data_types_dd.current(0)   
-        
-        '''
-        Define config frame UI objects
-        '''
+
+        # Define a label to act as a spacer
+        self.space_label1 = objects_ui.define_label(self.config_frame, space_label_pos1[0], space_label_pos1[1], "|")
+        self.space_label1.grid(padx = 10, pady = 0)
+        self.space_label1.configure(font=(NONE,15), foreground="#808080")
+
         #Create a show timestamp checkbox
         self.timestamp_checkbox = objects_ui.define_checkbox(self.config_frame, timestamp_checkbox_pos[0], timestamp_checkbox_pos[1], 
                                                 "Show Timestamp", self.timestamp_flag, None, 'normal', 'round-toggle')
-        self.timestamp_checkbox.grid(sticky=NW)
 
         #Create an include next line character checkbox
         self.include_new_line_checkbox = objects_ui.define_checkbox(self.config_frame, include_new_line_checkbox_pos[0], 
                                                 include_new_line_checkbox_pos[1], "Include New Line Character",
                                                 self.include_new_line_flag, None, "normal", 'round-toggle')
-        self.include_new_line_checkbox.grid(sticky=NW)
 
         #Create an include carriage return character checkbox
         self.include_carriage_return_checkbox = objects_ui.define_checkbox(self.config_frame, include_carriage_return_checkbox_pos[0], 
                                                 include_carriage_return_checkbox_pos[1], "Include Carriage Return Character",
                                                 self.include_carriage_return_flag, None, "normal", 'round-toggle')
-        self.include_carriage_return_checkbox.grid(sticky=NW)
 
         #Create a echo checkbox
         self.echo_checkbox = objects_ui.define_checkbox(self.config_frame, echo_checkbox_pos[0], echo_checkbox_pos[1], "Enable Echo",
                                                 self.echo_enable_flag, None, "normal", 'round-toggle')
-        self.echo_checkbox.grid(sticky=NW)
 
         '''
         Define Terminal frame UI objects
@@ -193,23 +195,20 @@ class terminal_tab:
                                                                     send_message_textbox_pos[1], 47, 'disabled')
         self.send_message_textbox.grid(sticky=NSEW)
         self.send_message_textbox.configure(font=('Times New Roman',11))
-        
-        # Create a button to send data on selected port
-        self.send_button = objects_ui.define_button(self.display_frame, send_button_pos[0], send_button_pos[1], "Send",
-                           lambda:  type(self).send_button_pressed(self), 'disabled')
-        self.send_button.grid(sticky=NSEW, padx=5, pady=5)
-        
-        # Create a clear terminal display button
-        self.clear_button = objects_ui.define_button(self.display_frame, clear_button_pos[0], clear_button_pos[1], 
-                                                     "Clear", lambda: type(self).clear_button_pressed(self), 'normal')
-        self.clear_button.grid(sticky=SE, padx=5, pady=5)
 
         '''
-        Define Empty frame UI objects
+        Define Button frame UI objects
         '''
-        # Define an empty label to act as a spacer for the bottom 
-        self.empty_label = objects_ui.define_label(self.south_boundary_frame, empty_label_pos[0], empty_label_pos[1], "")
-        self.empty_label.grid(sticky=NSEW)
+        # Create a button to send data on selected port
+        self.send_button = objects_ui.define_button(self.display_button_frame, send_button_pos[0], send_button_pos[1], "Send",
+                           lambda:  type(self).send_button_pressed(self), 'disabled')
+        self.send_button.grid(padx=5, pady=5)
+        
+        # Create a clear terminal display button
+        self.clear_button = objects_ui.define_button(self.display_button_frame, clear_button_pos[0], clear_button_pos[1], 
+                                                     "Clear", lambda: type(self).clear_button_pressed(self), 'normal')
+        self.clear_button.grid(padx=5, pady=5)
+
 
         return
 
@@ -399,7 +398,7 @@ class terminal_tab:
     Return: True on Success / False on Failure
     '''
     @classmethod
-    def open_settings_window(cls,tab):
+    def open_settings_window(cls, tab):
 
         # Terminate receive thread 
         # to prevent a read operation while

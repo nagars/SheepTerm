@@ -33,7 +33,7 @@ new_tab_name - Tab name written into text box
 
 Return: None
 '''
-def confirm_tabname(tab_window, new_tab_name, event=None):
+def confirm_tabname(tab_window, new_tab_name : str, event=None):
 
     global g_tab_name       # Tracks current tab name
     global g_add_tab_flag   # Tracks if new tab is to be added or not
@@ -319,7 +319,7 @@ def load_config():
 
     # Check if the config json file exists
     if os.path.isfile(config_file_path):
-        # If yes, open and read it
+        # If yes, open and read it into a dictionary
         with open(config_file_path, 'r') as f:
             data = json.load(f)
     
@@ -504,6 +504,9 @@ def set_widget_focus():
     if len(g_tab_list) == 0:
         return
 
+    # terminal_notebook.select() returns handle of current tab frame
+    # terminal_notebook.index() returns an index number of the handle
+    # Index number corresponds to its position int he g_tab_list global array of tabs
     # Current tab
     curr_tab = g_tab_list[terminal_notebook.index(terminal_notebook.select())]
 
@@ -522,7 +525,7 @@ Frame Definitions
 # Generate GUI window
 window = objects_ui.define_window(default_theme)
 # Define window size
-window.geometry('1150x700')
+window.geometry('1470x600')
 # Set title for window
 window.title("Sheep-Term")
 #Ensure display frame expands with window
@@ -546,9 +549,6 @@ setup_tabs()
 window.bind("<Return>", lambda event=None: tabs_ui.terminal_tab.send_button_pressed(g_tab_list[0]))
 
 # Re-bind enter key to button of new tab in focus using a function called on tab change
-# terminal_notebook.select() returns handle of current tab frame
-# terminal_notebook.index() returns an index number of the handle
-# Index number corresponds to its position int he g_tab_list global array of tabs
 terminal_notebook.bind("<<NotebookTabChanged>>", lambda event=None: set_widget_focus())
 
 # Change icon of the window

@@ -101,7 +101,7 @@ Return: button object
 '''
 def define_label(container, position_y, position_x, text = '', theme = 'normal'):
 
-    label = ttk_b.Label(container, text=text, bootstyle=theme,)
+    label = ttk_b.Label(container, text=text, bootstyle=theme)
     label.grid(column=position_y, row=position_x, padx=2, pady=2)
     return label
 

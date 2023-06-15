@@ -50,7 +50,7 @@ class comm_settings_class:
 Class for the settings window and associated functionality
 '''
 class settings_window_class:
-    def __init__(self, tabname) -> None:
+    def __init__(self, tabname : str) -> None:
 
         '''
         Public Objects
@@ -104,7 +104,7 @@ class settings_window_class:
         config_frame1 = objects_ui.define_frame(self.window, 0, 1)
         config_frame1.grid(sticky=NW)
 
-        # Define UI objects
+        '''Define UI objects'''
 
         # Define a label for baud rates
         baud_rate_label = objects_ui.define_label(config_frame0, 0, 0, "Baud Rate: ")
