@@ -14,6 +14,15 @@ import settings_ui  # custom library built to manage the settings window
 import objects_ui   # custom library built to handle common UI objects
 
 '''
+Frame Position values
+'''
+
+
+'''
+Widget Position Values
+'''
+
+'''
 Classes
 '''
 class terminal_tab:
@@ -33,6 +42,7 @@ class terminal_tab:
         self.settings = settings_ui.settings_window_class(self.name)    # Instance of settings class
 
         self.window = window        # Track current window the tab is in
+
         '''
         Define tkinter variables
         '''
@@ -51,7 +61,10 @@ class terminal_tab:
         # Create COM Frame for COM port settings
         self.com_frame = objects_ui.define_frame(self.tab_frame,0,0,NW)
 
-        # Create Display Configure Frame for checkbox and drop down options
+        # Create COM button frame
+        self.com_button_frame = objects_ui.define_frame(self.tab_frame,1,0,NW)
+
+        # Create Display Configure Frame for checkbox
         self.config_frame = objects_ui.define_frame(self.tab_frame, 0, 1, NW)
         
         # Create a Terminal frame to display actual data
@@ -69,6 +82,7 @@ class terminal_tab:
         # Define a label for com port to be placed near text box
         self.com_port_label = objects_ui.define_label(self.com_frame, 0, 0, "Com Port")
         self.com_port_label.grid(sticky=NW)
+
         # List all the available serial ports
         self.com_ports_available = list(port_list.comports())
         # Remove unusable com port options
@@ -84,45 +98,57 @@ class terminal_tab:
         # Define the drop down menu for com ports
         self.com_ports_menu = objects_ui.define_drop_down(self.com_frame, 1, 0, self.com_ports_available, 'readonly')
         self.com_ports_menu.grid(sticky=NW)
+
+        '''
+        Define Comm button frame UI objects
+        '''
         # Define Set COM port button
-        self.open_com_button = objects_ui.define_button(self.com_frame, 2, 0, "Open Port", lambda: type(self).open_com_port(self), 'normal')
+        self.open_com_button = objects_ui.define_button(self.com_button_frame, 0, 0, "Open Port", lambda: type(self).open_com_port(self), 'normal')
         self.open_com_button.grid(sticky=NW)
+
         # Define a settings button for sercomm settings
-        self.settings_button = objects_ui.define_button(self.com_frame, 3, 0, "Settings", 
+        self.settings_button = objects_ui.define_button(self.com_button_frame, 1, 0, "Settings", 
                                         lambda: type(self).open_settings_window(self), 'disabled')
         self.settings_button.grid(sticky=NW)
 
+        # Define a label to act as a spacer
+        self.space_label = objects_ui.define_label(self.com_button_frame, 2, 0, "|")
+        self.space_label.grid(padx = 10, pady = 0, sticky=NW)
+        self.space_label.configure(font=(NONE,15), foreground="#808080")
 
+        # Define a label for data type drop down
+        self.display_type_label = objects_ui.define_label(self.com_button_frame, 3, 0, "Display Type")
+
+        #Generate list of data types
+        self.data_types = ["STRING","ASCII","HEX", "BINARY"]
+        #Create a drop down menu with different datatypes to represent on terminal
+        self.data_types_dd = objects_ui.define_drop_down(self.com_button_frame, 4,0, self.data_types, 'readonly')
+        self.data_types_dd.grid(sticky=NW)
+        #Set default value of drop down menu
+        self.data_types_dd.current(0)   
+        
         '''
         Define config frame UI objects
         '''
-        # Define a label for data type drop down
-        self.display_type_label = objects_ui.define_label(self.config_frame, 0, 0, "Display Type")
-        self.display_type_label.grid(sticky=NW)
         #Create a show timestamp checkbox
         self.timestamp_checkbox = objects_ui.define_checkbox(self.config_frame, 0, 1, "Show Timestamp", 
                             self.timestamp_flag, None, 'normal', 'round-toggle')
         self.timestamp_checkbox.grid(sticky=NW)
-        #Generate list of data types
-        self.data_types = ["STRING","ASCII","HEX"]
-        #Create a drop down menu with different datatypes to represent on terminal
-        self.data_types_dd = objects_ui.define_drop_down(self.config_frame, 1,0, self.data_types, 'readonly')
-        self.data_types_dd.grid(sticky=NW)
-        #Set default value of drop down menu
-        self.data_types_dd.current(0)      
+
         #Create an include next line character checkbox
         self.include_new_line_checkbox = objects_ui.define_checkbox(self.config_frame, 0, 2, "Include New Line Character",
                                                 self.include_new_line_flag, None, "normal", 'round-toggle')
         self.include_new_line_checkbox.grid(sticky=NW)
+
         #Create an include carriage return character checkbox
         self.include_carriage_return_checkbox = objects_ui.define_checkbox(self.config_frame, 0, 3, "Include Carriage Return Character",
                                                 self.include_carriage_return_flag, None, "normal", 'round-toggle')
         self.include_carriage_return_checkbox.grid(sticky=NW)
+
         #Create a echo checkbox
         self.echo_checkbox = objects_ui.define_checkbox(self.config_frame, 0, 4, "Enable Echo",
                                                 self.echo_enable_flag, None, "normal", 'round-toggle')
         self.echo_checkbox.grid(sticky=NW)
-
 
         '''
         Define Terminal frame UI objects
@@ -136,6 +162,7 @@ class terminal_tab:
         self.send_message_textbox = objects_ui.define_entry_textbox(self.display_frame, 0, 1, 47, 'disabled')
         self.send_message_textbox.grid(sticky=NSEW)
         self.send_message_textbox.configure(font=('Times New Roman',11))
+        
         # Create a button to send data on selected port
         self.send_button = objects_ui.define_button(self.display_frame, 1, 1, "Send",
                            lambda:  type(self).send_button_pressed(self), 'disabled')
@@ -422,7 +449,11 @@ class terminal_tab:
             case "HEX":
                 for i in msg:
                     print_msg += str(hex(ord(i))[2:]) + ' '
-                
+            
+            case "BINARY":
+                for i in msg:
+                    print_msg += str(bin(ord(i))[2:]) + ' '
+
             case _:
                 return False
         

@@ -6,7 +6,6 @@ import os       # For directory manipulation
 
 '''Custom Modules'''
 import objects_ui           # custom library built to handle common UI objects
-import csvlogger as log     # custom library for logging data to .csv file
 import tabs_ui              # custom library built to handle tabs
 
 '''
@@ -500,6 +499,10 @@ Parameters: None
 Return: None
 '''
 def set_widget_focus():
+
+    # Check that there is at least 1 active tab open
+    if len(g_tab_list) == 0:
+        return
 
     # Current tab
     curr_tab = g_tab_list[terminal_notebook.index(terminal_notebook.select())]
