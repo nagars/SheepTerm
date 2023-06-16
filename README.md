@@ -76,26 +76,26 @@ The UI can be broken down into 8 major components:
 7. Themes
 8. Logger
 
-### The Main Window
+### 1. The Main Window
 
 The main window is generated using python's [ttkbootstrap](https://ttkbootstrap.readthedocs.io/en/latest/) (An abstraction on the well known tkinter). Includes:
 1. The menu bar with various options for themes, settings and tabs. 
 2. The notebook which all the individual tabs are a part of. 
 
-### The Menu Bar
+### 2. The Menu Bar
 
 The [menu bar](https://pythonspot.com/tk-menubar/) sits at the top of the notebook. It contains various options to change the appearence of tabs and the terminal in general.
 
 ![image](https://github.com/nagars/SheepTerm/assets/25108047/fda0938f-f411-4f38-b625-e0eaad9dc453)
 ![image](https://github.com/nagars/SheepTerm/assets/25108047/b9f7637b-e3a6-48c1-8516-53729c53ae90)
 
-### The Notebook
+### 3. The Notebook
 
 A [notebook](https://ttkbootstrap.readthedocs.io/en/version-0.5/widgets/notebook.html) is a tkinter widget that supports tabs. There is one notebook in this terminal. It contains completely isolated unique tabs. Each tab can connect to a serial port and operate enitrely unaffected by the addition / removal of other tabs. The notebook can handle any number of tabs. Each tab maintains its own serial settings, csv log files and so on.
 
 Each tab is further defined through frames. 
 
-### Frames
+### 4. Frames
 
 [Frames](https://ttkbootstrap.readthedocs.io/en/version-0.5/widgets/frame.html) are tkinter widgets that allow one to split the window into unique sections that can be assigned unique formats, settings, widgets, positions etc.
 This project contains 3 frames:
@@ -108,7 +108,7 @@ I chose this configuration based on ease of re-configuration of the terminals UI
 
 ![Untitled](https://github.com/nagars/SheepTerm/assets/25108047/aadbbbf0-88ae-4eed-a9a8-768846c1e612)
 
-### Widgets
+### 5. Widgets
 
 [Widgets](https://tkdocs.com/tutorial/widgets.html) are tkinter objects that form the basic UI. These include buttons, labels (Text), drop downs and so forth. I played around with a variety of widgets before settling on a mix of widgets that were both intuitive and had a good appearence (In my humble opinion). Find example screenshots and descriptions below:
 
@@ -131,7 +131,7 @@ I chose this configuration based on ease of re-configuration of the terminals UI
       3. Echo Enabled ( Transmitted Message is echoed back to terminal )
 ![image](https://github.com/nagars/SheepTerm/assets/25108047/38a42f80-a1bd-4acd-8b79-f529065d236c)
 
-### Auxiliary Windows
+### 6. Auxiliary Windows
 
 Apart from the main window, there are 2 additional windows that can be generated:
 
@@ -143,7 +143,7 @@ Apart from the main window, there are 2 additional windows that can be generated
 
 ![image](https://github.com/nagars/SheepTerm/assets/25108047/40e2ee95-faf7-4af0-a252-b6298b4bc8cb)
 
-### Themes
+### 7. Themes
 
 This terminal comes with 3 themes: 
 
@@ -157,7 +157,7 @@ This terminal comes with 3 themes:
 ![dgdrg](https://github.com/nagars/SheepTerm/assets/25108047/996342a1-7181-4172-9005-342e051bda19)
 
 
-### Logger
+### 8. Logger
 
 Finally, the csv logger can be enabled through the serial settings window. An example of a .csv generated during a simple test is shown below. Note changing the display datatype in the terminal dynamically changes the format in which it is logged into the .csv file.
 
