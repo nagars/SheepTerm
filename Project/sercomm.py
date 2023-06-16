@@ -2,6 +2,8 @@ import serial  # Import pyserial library
 from serial.serialutil import STOPBITS_ONE_POINT_FIVE       
 from serial import SerialException  # Import pyserial exception handling
 
+minimum_timeout = 0.01  # Is set when the user requests a timeout of 0s
+
 '''
 Functions
 '''
@@ -25,6 +27,10 @@ def open_serial_com(com_port, baud = 9600, bytes_size = 8, time_out = 2, stop_bi
     # Ensure a com port was selected
     if(com_port == ''):
         return False
+
+    # Check timeout
+    if(time_out == 0.0):
+        time_out = minimum_timeout
 
     # Open selected com port with default parameters. Returned port handle is set as global variable
     try:

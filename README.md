@@ -44,6 +44,11 @@ I have attempted to keep the features both comprehensive and still inline with t
 **|** <br />
 **|-- ShaunTheSheep.ico** : Image to set as the icon of the terminal <br />
 
+## How to Running
+
+Ensure you have Python3 and pyserial installed on you device.
+Simply go to the project directory in command terminal. Type "python3 Terminal.py".
+
 ## Development Environment
 
 1. Software Used:

@@ -76,7 +76,7 @@ def tabname_window(default_tabname : str):
     # Create new window over the main window
     tab_window = Toplevel()
     tab_window.resizable(width=False, height=False)
-    tab_window.title("New Tab")
+    tab_window.title("New Tab Name")
 
     # Disabled access to main terminal window
     tab_window.grab_set()
@@ -528,7 +528,7 @@ Frame Definitions
 # Generate GUI window
 window = objects_ui.define_window(theme["default"])
 # Define window size
-window.geometry('1470x600')
+window.geometry('1490x600')
 # Set title for window
 window.title("Sheep-Term")
 #Ensure display frame expands with window

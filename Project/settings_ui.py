@@ -91,7 +91,7 @@ class settings_window_class:
         self.window = Toplevel()
         self.window.geometry("341x258")
         self.window.resizable(width=False, height=False)
-        self.window.title("Sheep Settings" + self.__tab_name)
+        self.window.title("Sheep Settings")
 
         # Disabled access to main terminal window
         self.window.grab_set()

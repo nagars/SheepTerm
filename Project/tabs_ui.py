@@ -16,31 +16,29 @@ import objects_ui   # custom library built to handle common UI objects
 '''
 Frame Position values (y,x coordinate in main window)
 '''
-com_frame_pos               = 0,0
-config_frame_pos            = 1,0
+config_frame_pos            = 0,0
 display_frame_pos           = 0,1
 display_button_frame_pos    = 0,2
 
 '''
 Widget Position Values (y,x coordinate in a specific frame)
 '''
-# Com Frame
+# Config Frame
 com_port_label_pos          = 0,0
 com_ports_menu_pos          = 1,0
 
-# Config Frame
-open_com_button_pos         = 0,0
-settings_button_pos         = 1,0
+open_com_button_pos         = 2,0
+settings_button_pos         = 3,0
 
-space_label_pos0            = 2,0
-display_type_label_pos      = 3,0
-data_types_dd_pos           = 4,0
+space_label_pos0            = 4,0
+display_type_label_pos      = 5,0
+data_types_dd_pos           = 6,0
 
-space_label_pos1                        = 5,0
-timestamp_checkbox_pos                  = 6,0
-include_new_line_checkbox_pos           = 7,0
-include_carriage_return_checkbox_pos    = 8,0
-echo_checkbox_pos                       = 9,0
+space_label_pos1                        = 7,0
+timestamp_checkbox_pos                  = 8,0
+include_new_line_checkbox_pos           = 9,0
+include_carriage_return_checkbox_pos    = 10,0
+echo_checkbox_pos                       = 11,0
 
 # Display Frame
 terminal_box_pos                        = 0,0
@@ -87,8 +85,6 @@ class terminal_tab:
         '''
         Define frames of tab
         '''
-        # Create COM Frame for COM port settings
-        self.com_frame = objects_ui.define_frame(self.tab_frame,com_frame_pos[0],com_frame_pos[1],NSEW)
 
         # Create Display Configure Frame for checkbox
         self.config_frame = objects_ui.define_frame(self.tab_frame, config_frame_pos[0], config_frame_pos[1],NSEW)
@@ -109,7 +105,7 @@ class terminal_tab:
         Define COMM frame UI objects
         '''
         # Define a label for com port to be placed near text box
-        self.com_port_label = objects_ui.define_label(self.com_frame, com_port_label_pos[0], com_port_label_pos[1], "Com Port")
+        self.com_port_label = objects_ui.define_label(self.config_frame, com_port_label_pos[0], com_port_label_pos[1], "Com Port")
 
         # List all the available serial ports
         self.com_ports_available = list(port_list.comports())
@@ -119,11 +115,11 @@ class terminal_tab:
         for item in self.com_ports_available:
             if str(item)[0:5] == "NULL_":
                 self.com_ports_available.remove(item)
-        self.com_ports_available.append("COM8") #REMOVE POST TESTING!@!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        self.com_ports_available.append("COM9") #REMOVE POST TESTING!@!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        #self.com_ports_available.append("COM8") #REMOVE POST TESTING!@!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        #self.com_ports_available.append("COM9") #REMOVE POST TESTING!@!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
         # Define the drop down menu for com ports
-        self.com_ports_menu = objects_ui.define_drop_down(self.com_frame, com_ports_menu_pos[0], com_ports_menu_pos[1], 
+        self.com_ports_menu = objects_ui.define_drop_down(self.config_frame, com_ports_menu_pos[0], com_ports_menu_pos[1], 
                                                           self.com_ports_available, 'readonly')
         # Set width to 20 Characters
         self.com_ports_menu.config(width=20)
@@ -171,6 +167,7 @@ class terminal_tab:
         self.include_new_line_checkbox = objects_ui.define_checkbox(self.config_frame, include_new_line_checkbox_pos[0], 
                                                 include_new_line_checkbox_pos[1], "Include New Line Character",
                                                 self.include_new_line_flag, None, "normal", 'round-toggle')
+        self.include_new_line_checkbox.grid(padx=10)
 
         #Create an include carriage return character checkbox
         self.include_carriage_return_checkbox = objects_ui.define_checkbox(self.config_frame, include_carriage_return_checkbox_pos[0], 
@@ -180,7 +177,8 @@ class terminal_tab:
         #Create a echo checkbox
         self.echo_checkbox = objects_ui.define_checkbox(self.config_frame, echo_checkbox_pos[0], echo_checkbox_pos[1], "Enable Echo",
                                                 self.echo_enable_flag, None, "normal", 'round-toggle')
-
+        self.echo_checkbox.grid(padx=10)
+        
         '''
         Define Terminal frame UI objects
         '''
@@ -547,6 +545,9 @@ class terminal_tab:
 
             # Set flag to track start of data coming in
             serial_start = True
+
+            # Update message data type for printing based on drop down
+            msg = type(tab).update_msg_datatype(tab.data_types_dd.get(), msg)
 
             # Print to terminal. If no timeout occurs, then
             # messages should be written to same line
