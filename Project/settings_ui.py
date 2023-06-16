@@ -1,3 +1,4 @@
+import tkinter                       # Import tkinter library used to generate GUI
 from tkinter import *   # Import tkinter modules used to generate GUI
 
 import serial           # Import pyserial library
@@ -68,7 +69,7 @@ class settings_window_class:
         self.__paritybits_dd = None       # Object to parity bits drop down menu
         self.__stopbits_dd = None         # Object to stop bits drop down menu
         self.__timeout_textbox_dd = None  # Object to timeout input text box
-        self.__enable_logging_flag = None # Tracks if csv logger should be called or not
+        self.__enable_logging_flag = tkinter.BooleanVar() # Tracks if csv logger should be called or not
         return
     
 
@@ -173,10 +174,9 @@ class settings_window_class:
         self.__timeout_textbox_dd.insert(0, self.com_settings.readtimeout)
 
         # Enable logging disabled by default
-        self.__enable_logging_flag = False
         # Define an enable logging checkbox
         __enable_logging_checkbox = objects_ui.define_checkbox(config_frame0, 0, 5, "Enable Logging",
-                            self.__enable_logging_flag, self.__enable_logging, "normal", "success-round-toggle")
+                            self.__enable_logging_flag, None, "normal", "success-round-toggle")
         __enable_logging_checkbox.grid(sticky=W)
 
         # Define a set port settings button
@@ -191,7 +191,7 @@ class settings_window_class:
 
         # Define a cancel button
         self.cancel_button = objects_ui.define_button(config_frame1, 0, 0, "Cancel",
-                                    self.window.destroy, 'normal')
+                                    self.__cancel_settings, 'normal')
         self.cancel_button.grid(sticky=E)
 
         if self.logger.file_obj != None:
@@ -215,6 +215,19 @@ class settings_window_class:
     '''
 
     '''
+    
+    '''
+    def __cancel_settings(self,event=None):
+
+        # Reset the logging flag if enabled
+        self.__enable_logging_flag.set(False)
+
+        # Destroy the window
+        self.window.destroy()
+
+        return
+
+    '''
     Function Description: Accepts new settings, checks
     if they are valid. Ensures the new settings are different from the 
     previous settings before closing adn opening serial port
@@ -233,7 +246,7 @@ class settings_window_class:
 
         # Ensure log file checkbox is selected and appropriate directory
         # has been chosen by user
-        if(self.__enable_logging_flag == True):
+        if(self.__enable_logging_flag.get() == True):
 
             # Define the name of the log file as "log"_"Date"_"Time"_.csv
             filename = "log_" + self.__tab_name + "_" + datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + ".csv"
@@ -306,22 +319,4 @@ class settings_window_class:
         self.window.destroy()
 
         return True
-
-
-    '''
-    Function Description: Toggles the enable logging flag.
-    Called when action on logging checkbox by user
-
-    Parameters: void
-
-    Return: void
-    '''
-    def __enable_logging(self):
-        
-        # Enable log file textbox if checkbox is set
-        if self.__enable_logging_flag == True:
-
-            self.__enable_logging_flag = False
-        else:    
-            self.__enable_logging_flag = True
 

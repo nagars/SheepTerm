@@ -14,7 +14,7 @@ import settings_ui  # custom library built to manage the settings window
 import objects_ui   # custom library built to handle common UI objects
 
 '''
-Frame Position values (y,x)
+Frame Position values (y,x coordinate in main window)
 '''
 com_frame_pos               = 0,0
 config_frame_pos            = 1,0
@@ -22,7 +22,7 @@ display_frame_pos           = 0,1
 display_button_frame_pos    = 0,2
 
 '''
-Widget Position Values (y,x)
+Widget Position Values (y,x coordinate in a specific frame)
 '''
 # Com Frame
 com_port_label_pos          = 0,0
@@ -36,7 +36,7 @@ space_label_pos0            = 2,0
 display_type_label_pos      = 3,0
 data_types_dd_pos           = 4,0
 
-space_label_pos1            = 5,0
+space_label_pos1                        = 5,0
 timestamp_checkbox_pos                  = 6,0
 include_new_line_checkbox_pos           = 7,0
 include_carriage_return_checkbox_pos    = 8,0
@@ -117,7 +117,6 @@ class terminal_tab:
         # (NULL appended com port names seem to appear. Possibly due to using
         #  virtual com ports?)
         for item in self.com_ports_available:
-            print(item)
             if str(item)[0:5] == "NULL_":
                 self.com_ports_available.remove(item)
         self.com_ports_available.append("COM8") #REMOVE POST TESTING!@!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -506,8 +505,10 @@ class terminal_tab:
 
         # Flag to track if a read timeout has occurred
         serial_timout_occurred = False
+        # Flag to track when data first starts coming in
+        serial_start = False
         # Initialise log_msg variable
-        log_msg = ''    
+        log_msg = str()    
 
         # Maintain the thread until the terminate event flag is set
         # flag is set when the user attempts to close the window and
@@ -516,26 +517,44 @@ class terminal_tab:
             # Get data from serial port
             # Convert to string from bytes
             msg = (sercomm.read_serial_com(tab.settings.com_settings.serialport)).decode("UTF-8")
-            # If length of msg is 0, a timeout has occurred with no data received
-            if len(msg) == 0:
-                serial_timout_occurred = True
-                continue
+    
+            # If length of msg is 0, a timeout has occurred.
+            if ((len(msg) == 0)):
+                # (Data transaction occurring)
+                # If this timeout occurred after data has been received 
+                # set timeout flag to trigger a logging session 
+                # and reset flags if needed
+                if(serial_start == True):
+                    serial_timout_occurred = True
+                # (No Data transaction occurring)   
+                # Else, timeout occurred before any data was received
+                # Wait for next batch of data
+                else:
+                    continue
 
-            # Time stamp when data was received
-            logtime = datetime.now().strftime('%H:%M:%S.%f')[:-3]
-
-            # Update message data type for printing based on drop down
-            msg = type(tab).update_msg_datatype(tab.data_types_dd.get(), msg)
-            
-            # Check if a timeout has occurred, print to new line
-            if serial_timout_occurred == True:
+            # If data has started coming in for the first time, 
+            # write time stamp information
+            if(serial_start == False):
+                # Time stamp when data was received
+                logtime = datetime.now().strftime('%H:%M:%S.%f')[:-3]
 
                 #Check if timestamp is required. Append to message
                 if (tab.timestamp_flag.get() == True):
-                    type(tab).print_to_terminal(tab, '\n' + logtime + " :\t\tRX: " + msg)
+                    type(tab).print_to_terminal(tab, logtime + " :\tRX: ")
 
                 else:
-                    type(tab).print_to_terminal(tab, '\n' + "RX: " + msg)
+                    type(tab).print_to_terminal(tab, "RX: ")
+
+            # Set flag to track start of data coming in
+            serial_start = True
+
+            # Print to terminal. If no timeout occurs, then
+            # messages should be written to same line
+            type(tab).print_to_terminal(tab, msg)           
+            log_msg += msg
+
+            # If a timeout occurs
+            if serial_timout_occurred == True:
 
                 # Log data if required. Check that empty messages dont get logged
                 curr_logfile = tab.settings.logger.file_obj
@@ -546,17 +565,16 @@ class terminal_tab:
                     # Reset log_msg
                     log_msg = ''
 
+                # Change line in terminal
+                type(tab).print_to_terminal(tab, '\n')
+
                 # Reset timeout flag
                 serial_timout_occurred = False
+                # Reset serial interaction flag
+                serial_start = False
 
-            else:
-                
-                # Print to terminal. If no timeout occurs, then
-                # messages should be written to same line
-                type(tab).print_to_terminal(tab, msg)           
-                log_msg += msg
-                
-        return True
+        return
+
 
 
     '''

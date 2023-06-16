@@ -39,7 +39,7 @@ class csvlogger_class:
             return False
 
         # Return object to csv writer
-        self.__writer_obj = csv.writer(self.file_obj, delimiter = delim)
+        self.__writer_obj = csv.writer(self.file_obj, delimiter = delim, lineterminator='\n')
     
         return self.file_obj
 

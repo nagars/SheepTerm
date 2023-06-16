@@ -18,7 +18,11 @@ settings_dir_path = ".settings"   # Saves the folder and file to store settings 
 theme_file_path = settings_dir_path + "/theme.json" # Theme settings
 config_file_path = settings_dir_path + "/config.json"   # Tab configuration settings
 
-default_theme = "superhero" # Sets the default theme to startup with
+theme = {                # Dictionary of possible themes (Refer to ttkbootstrap manpage)
+        "default"   : "superhero",
+        "dark"      : "darkly",
+        "light"     : "journal"
+        }
 
 '''
 Functions for New / Edit tab window
@@ -71,7 +75,6 @@ def tabname_window(default_tabname : str):
 
     # Create new window over the main window
     tab_window = Toplevel()
-    #tab_window.geometry("400x100")
     tab_window.resizable(width=False, height=False)
     tab_window.title("New Tab")
 
@@ -248,9 +251,9 @@ def create_menubar():
     tab_menu.add_command(label="Clear Settings", command=lambda: clear_settings())
 
     menu_bar.add_cascade(label="Theme", menu=theme_menu)
-    theme_menu.add_command(label="Default", command=lambda: set_theme(default_theme))
-    theme_menu.add_command(label="Dark", command=lambda: set_theme("darkly"))
-    theme_menu.add_command(label="Light", command=lambda: set_theme("journal"))
+    theme_menu.add_command(label="Default", command=lambda: set_theme(theme["default"]))
+    theme_menu.add_command(label="Dark", command=lambda: set_theme(theme["dark"]))
+    theme_menu.add_command(label="Light", command=lambda: set_theme(theme["light"]))
 
     return menu_bar
 
@@ -434,7 +437,7 @@ def load_theme():
             saved_theme = data.get("theme")
     else:
         # If not, create one and set the default theme
-        saved_theme = default_theme
+        saved_theme = theme["default"]
         save_theme(saved_theme)
 
     return saved_theme
@@ -486,7 +489,7 @@ def clear_settings():
     create_tab()
 
     # Set theme to default
-    set_theme(default_theme)
+    set_theme(theme["default"])
     
     return
 
@@ -523,7 +526,7 @@ def set_widget_focus():
 Frame Definitions
 '''
 # Generate GUI window
-window = objects_ui.define_window(default_theme)
+window = objects_ui.define_window(theme["default"])
 # Define window size
 window.geometry('1470x600')
 # Set title for window
