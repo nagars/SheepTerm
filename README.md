@@ -49,6 +49,8 @@ I have attempted to keep the features both comprehensive and still inline with t
 Ensure you have Python3 and pyserial installed on you device.
 Simply go to the project directory in command terminal. Type "python3 Terminal.py".
 
+Alternatively, using pyinstaller you can generate a [standalone executable]([url](https://www.youtube.com/watch?v=QWqxRchawZY)). 
+
 ## Development Environment
 
 1. Software Used:
@@ -104,7 +106,7 @@ This project contains 3 frames:
 2. Display Frame
 3. Display Button Frame
 
-I chose this configuration based on ease of re-configuration of the terminals UI, space utilisation and widget justification and placement. Refer to previous project milestons section below.
+I chose this configuration based on ease of re-configuration of the terminals UI, space utilisation and widget justification and placement. Refer to previous project milestones section below.
 
 ![Untitled](https://github.com/nagars/SheepTerm/assets/25108047/aadbbbf0-88ae-4eed-a9a8-768846c1e612)
 
@@ -116,20 +118,9 @@ I chose this configuration based on ease of re-configuration of the terminals UI
 
 ![image](https://github.com/nagars/SheepTerm/assets/25108047/d4f14265-0b73-43ca-a665-586a3df712d2)
 
-2. **Display Type Drop Down + Config Check Button**: <br /><br /> Names all possible display formats. Checkbuttons enable / disable timestamps and echo of data being sent. Additional checkbutton append '\n' and '\r' to the message being sent.
+2. **Display Type Drop Down + Config Check Button**: <br /><br /> Names all possible display formats. Checkbuttons enable / disable timestamps and echo of data being sent. Additional checkbuttons append '\n' and '\r' to the message being sent.
 
 ![image](https://github.com/nagars/SheepTerm/assets/25108047/e47d7bb9-1487-4167-923c-42265e627ad0)
-
-3. **Terminal Display Operation Examples:**
-
-      1. Timestamps Disabled
-![image](https://github.com/nagars/SheepTerm/assets/25108047/e739ddb3-c33a-4ccf-98a2-3aa6a4320f70)
-
-      2. Timestamps Enabled
-![image](https://github.com/nagars/SheepTerm/assets/25108047/87f32215-9ce6-4cdd-9d95-3cb0f313b3a8)
-
-      3. Echo Enabled ( Transmitted Message is echoed back to terminal )
-![image](https://github.com/nagars/SheepTerm/assets/25108047/38a42f80-a1bd-4acd-8b79-f529065d236c)
 
 ### 6. Auxiliary Windows
 
@@ -137,7 +128,7 @@ Apart from the main window, there are 2 additional windows that can be generated
 
 1. **Tab name window** - This window is generated when the user attempts to add a new tab or edit the name of a current tab. It allows the user to enter the new name or simply accept a default name based on the number of previously opened tabs
 
-![image](https://github.com/nagars/SheepTerm/assets/25108047/0bcd4c0e-2148-4dca-b5bc-e2f2d33a0e44)
+![Screenshot 2023-06-16 200140](https://github.com/nagars/SheepTerm/assets/25108047/e10f7538-a4ec-4015-8206-96e7ade3dc7a)
 
 2. **Serial settings window** - This window is generated when the user attempts to change the serial settings of a particular tab or to enable logging of data to a .csv file. 
 
@@ -147,19 +138,21 @@ Apart from the main window, there are 2 additional windows that can be generated
 
 This terminal comes with 3 themes: 
 
-1. Default
+      1. Default
 ![afaefaefaef](https://github.com/nagars/SheepTerm/assets/25108047/9884268c-f467-4ce2-9cb8-c1fd48d616a7)
 
-2. Dark
+      2. Dark
 ![q3rqr3](https://github.com/nagars/SheepTerm/assets/25108047/6ec4a309-ab66-4d71-863d-d1601e983831)
 
-3. Light
+      3. Light
 ![dgdrg](https://github.com/nagars/SheepTerm/assets/25108047/996342a1-7181-4172-9005-342e051bda19)
 
 
 ### 8. Logger
 
-Finally, the csv logger can be enabled through the serial settings window. An example of a .csv generated during a simple test is shown below. Note changing the display datatype in the terminal dynamically changes the format in which it is logged into the .csv file.
+Finally, the csv logger can be enabled through the serial settings window. An example of a .csv generated during a simple test is shown below. 
+
+Note, changing the display datatype in the terminal dynamically changes the format in which it is logged into the .csv file.
 
 ![image](https://github.com/nagars/SheepTerm/assets/25108047/5e67f3b7-6a10-4484-8795-e55e02f5d17b)
 
@@ -174,7 +167,18 @@ Finally, the csv logger can be enabled through the serial settings window. An ex
 
 ## Additional Notes:
 
-### Testing with Virtual COM ports
+### **Terminal Display Usage Examples:**
+
+      1. Timestamps Disabled
+![image](https://github.com/nagars/SheepTerm/assets/25108047/e739ddb3-c33a-4ccf-98a2-3aa6a4320f70)
+
+      2. Timestamps Enabled
+![image](https://github.com/nagars/SheepTerm/assets/25108047/87f32215-9ce6-4cdd-9d95-3cb0f313b3a8)
+
+      3. Echo Enabled ( Transmitted Message is printed on to terminal )
+![image](https://github.com/nagars/SheepTerm/assets/25108047/38a42f80-a1bd-4acd-8b79-f529065d236c)
+
+### **Testing with Virtual COM ports**
 
 My initial plan was to do a simple loopback with the CP2102 however, it very quickly became apparent that my module was defective. Thats what I get for going cheap on amazon :)
 Being impatient as I am, I decided to look into virtual com ports on Windows. In walks com0com. With a few simple commands, one can link two virtual com ports. In the beginning I opened one com port with my serial terminal and the other with Putty. Eventually once I added tabs, I connected one tab to each com port. Simple, straight forward and easy to configure. God bless the open source community.
@@ -185,20 +189,20 @@ Note: I found that pyserial doesn't see this virtual com ports as available. How
 
 ## Previous Project Milestones :)
 
-### First release iteration with tkinter
+### **First release iteration with tkinter**
 
 No tabs, no fancy UI, no ability to remember settings. Just a bare bones serial terminal. And terrible use of space.
 
 ![Screenshot 2023-03-22 140829](https://github.com/nagars/SheepTerm/assets/25108047/de0a9541-55ed-40ba-8a90-39a56f9619d0)
 ![Screenshot 2023-03-22 140947](https://github.com/nagars/SheepTerm/assets/25108047/b3f73d8e-8e83-4fee-b28f-fc652ac633a4)
 
-### Look! fancy theme!?
+### **Look! fancy theme!?**
 
 Added ttkbootstrap and improved the appearence. Addition of an echo option to see what youre sending. Still terrible use of space.
 
 ![Screenshot 2023-03-26 222834](https://github.com/nagars/SheepTerm/assets/25108047/4a9c146e-7b94-4198-9a79-071016950646)
 
-### Did somone mention tabs?
+### **Did somone mention tabs?**
 
 Added a notebook and tabs. No ability to change the number of tabs or remember tab names / configurations still. That use of space though :/
 
